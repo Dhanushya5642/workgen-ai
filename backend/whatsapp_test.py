@@ -11,7 +11,7 @@ client = Client(account_sid, auth_token)
 
 message = client.messages.create(
     from_='whatsapp:+14155238886',
-    body='🔥 AgentX Test Message Successful!',
+    body='🔥 Ahem! You have a meeting , right??',
     to='whatsapp:+919385567633'
 )
 

@@ -61,11 +61,15 @@ export default function Sidebar({ items, activePage, onChange, theme }) {
             dark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white/90'
           }`}
         >
-          <p className="text-sm font-semibold">Backend target</p>
-          <p className="mt-1 text-sm text-slate-400">Connects to your existing Python AgentX API.</p>
-          <div className="mt-3 inline-flex rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
-            REST-first frontend
+          {/* <p className="text-sm font-semibold">Introducing AgentX by</p> */}
+  
+          {/*<div className="mt-3 inline-flex rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
+            Settings
           </div>
+          */}
+          
+          {/* <p className="mt-1 text-sm text-slate-400">DHIVYA V</p> */}
+      
         </div>
       </div>
     </aside>

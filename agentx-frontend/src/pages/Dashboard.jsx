@@ -12,10 +12,10 @@ export default function Dashboard({ items, onNavigate, theme }) {
             AgentX mission control
           </div>
           <h2 className="mt-5 max-w-3xl text-3xl font-semibold tracking-tight md:text-5xl">
-            Demo-ready AI operations cockpit for email, meetings, research, journaling, and live audio.
+            Balance worklife and mental health like a PRO
           </h2>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
-            This frontend keeps your existing Python backend untouched and focuses on presenting every AgentX module in a clean, hackathon-friendly experience.
+            A complete Power button for Email, Calender, Notion, Alarm, Research, Summary, Meeting Transcription, Journal, Cognitive Assistant and everything you want!! 
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <button
@@ -35,13 +35,14 @@ export default function Dashboard({ items, onNavigate, theme }) {
           </div>
         </div>
 
-        <ResultCard title="Why this works for demos" subtitle="Pitch-ready product framing" theme={theme}>
+        <ResultCard title="What's so special?" subtitle="You gonna regret if you don't have it" theme={theme}>
           <div className="grid gap-3 text-sm text-slate-300">
             {[
+              'Your virtual personal diary',
               'One dashboard for all AI workflows',
-              'Clear backend API integration points',
-              'Dark/light theme for stage-friendly presentation',
-              'Focused module pages with action-oriented layouts',
+              'No more worry about to-do lists',
+            
+              'Cognitive AI notifications',
             ].map((point) => (
               <div
                 key={point}

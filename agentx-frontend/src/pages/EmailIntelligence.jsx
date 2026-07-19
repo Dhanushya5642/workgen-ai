@@ -98,9 +98,9 @@ export default function EmailIntelligence({ theme }) {
         }
       >
         <div className="space-y-4">
-          <p className="max-w-3xl text-sm leading-7 text-slate-400">
+          {/* <p className="max-w-3xl text-sm leading-7 text-slate-400">
             The frontend calls <code className="rounded bg-black/10 px-1.5 py-0.5">POST /scan-emails</code> and renders email classifications, downstream actions, and upcoming event context.
-          </p>
+          </p> */}
           {error ? <div className="rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{error}</div> : null}
           {actionMessage ? <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{actionMessage}</div> : null}
         </div>
@@ -157,7 +157,7 @@ export default function EmailIntelligence({ theme }) {
           </div>
         </ResultCard>
 
-        <ResultCard title="Upcoming Events" subtitle="Calendar-oriented context returned from the backend." theme={theme}>
+        <ResultCard title="Upcoming Events"  theme={theme}>
           <div className="space-y-3">
             {payload.events.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-white/10 px-4 py-5 text-sm text-slate-400">
@@ -176,7 +176,7 @@ export default function EmailIntelligence({ theme }) {
         </ResultCard>
       </div>
 
-      <ApiResponsePanel data={rawResponse} theme={theme} />
+      {/* <ApiResponsePanel data={rawResponse} theme={theme} /> */}
     </div>
   )
 }

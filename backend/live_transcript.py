@@ -1,15 +1,23 @@
-from faster_whisper import WhisperModel
-import sounddevice as sd
-import numpy as np
-
-# Load model once
-model = WhisperModel("tiny", compute_type="int8")
+try:
+    import sounddevice as sd
+    import numpy as np
+    from faster_whisper import WhisperModel
+    WHISPER_AVAILABLE = True
+except ImportError:
+    sd = None
+    np = None
+    WhisperModel = None
+    WHISPER_AVAILABLE = False
 
 samplerate = 16000
 duration = 5
 
+model = None
+
 
 def record_audio():
+    if not sd:
+        raise RuntimeError("sounddevice is not installed")
 
     audio = sd.rec(
         int(duration * samplerate),
@@ -26,14 +34,19 @@ def record_audio():
 # -------- FUNCTION CALLED FROM MAIN -------- #
 
 def run_live_transcription():
+    if not WHISPER_AVAILABLE:
+        print("Live transcription dependencies are not installed. Install faster-whisper, sounddevice, and numpy.")
+        return
+
+    global model
+    if model is None:
+        model = WhisperModel("tiny", compute_type="int8")
 
     print("🎤 Live transcription started")
     print("Press Ctrl+C to stop\n")
 
     try:
-
         while True:
-
             audio_data = record_audio()
 
             segments, info = model.transcribe(
@@ -45,7 +58,6 @@ def run_live_transcription():
                 print(segment.text)
 
     except KeyboardInterrupt:
-
         print("\n🛑 Transcription stopped")
 
 

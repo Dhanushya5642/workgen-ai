@@ -72,7 +72,7 @@ export default function LiveTranscription({ theme }) {
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
             {loading ? 'Microphone active' : 'Ready to listen'}
           </span>
-          <span>Panel supports transcript strings, chunks, or segment arrays from the backend.</span>
+          <span>Panel supports transcript strings, chunks, or segment arrays</span>
         </div>
         {error ? <div className="mt-4 rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{error}</div> : null}
       </ResultCard>
@@ -88,7 +88,7 @@ export default function LiveTranscription({ theme }) {
           </div>
         </ResultCard>
 
-        <ResultCard title="Session Metadata" subtitle="Optional backend details" theme={theme}>
+        <ResultCard title="Session Metadata" theme={theme}>
           <div className="space-y-3 text-sm text-slate-300">
             {meta ? (
               Object.entries(meta)
@@ -113,7 +113,7 @@ export default function LiveTranscription({ theme }) {
         </ResultCard>
       </div>
 
-      <ApiResponsePanel data={meta} theme={theme} />
+      {/* <ApiResponsePanel data={meta} theme={theme} /> */}
     </div>
   )
 }

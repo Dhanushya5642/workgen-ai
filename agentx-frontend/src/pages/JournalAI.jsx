@@ -79,7 +79,7 @@ export default function JournalAI({ theme }) {
         ))}
       </div>
 
-      <ApiResponsePanel data={result} theme={theme} />
+      {/* <ApiResponsePanel data={result} theme={theme} /> */}
     </div>
   )
 }

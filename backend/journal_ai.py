@@ -3,7 +3,10 @@ import json
 import re
 from datetime import date
 
-import ollama
+try:
+    import ollama
+except ImportError:
+    ollama = None
 
 
 # ---------------- EMOTION ANALYZER ---------------- #

@@ -132,8 +132,8 @@ export default function App() {
                   dark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white/85'
                 }`}
               >
-                <div className="text-slate-400">Backend API</div>
-                <div className="mt-1 font-medium">{API_BASE_URL}</div>
+                {/* <div className="text-slate-400">Backend API</div> */}
+                {/*<div className="mt-1 font-medium">Team Bet@4ge</div>*/}
               </div>
 
               <button

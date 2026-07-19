@@ -1,8 +1,11 @@
 import base64
 import json
 import re
+import sys
 from datetime import datetime
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -170,7 +173,12 @@ def knowledge_hub(payload: KnowledgeRequest):
 
 @app.post("/scan-emails")
 def scan_emails(payload: EmailRequest):
-    from backend import main as backend_main
+    try:
+        from backend import main as backend_main
+    except ModuleNotFoundError:
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import main as backend_main
 
     if payload.action and payload.email:
         email = payload.email
@@ -215,3 +223,9 @@ def scan_emails(payload: EmailRequest):
         "detected_emails": detected_emails,
         "upcoming_events": _load_json_list("events.json"),
     }
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)

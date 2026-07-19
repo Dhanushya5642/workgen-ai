@@ -117,13 +117,13 @@ export default function ResearchCopilot({ theme }) {
 
       <ResultCard
         title="Citations"
-        subtitle="References returned by the backend"
+        
         theme={theme}
       >
         {renderList(result?.citations)}
       </ResultCard>
 
-      <ApiResponsePanel data={result} theme={theme} />
+      {/* <ApiResponsePanel data={result} theme={theme} /> */}
     </div>
   );
 }

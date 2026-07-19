@@ -1,4 +1,8 @@
-import ollama
+try:
+    import ollama
+except ImportError:
+    ollama = None
+
 import json
 import re
 

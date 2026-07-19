@@ -109,7 +109,7 @@ export default function MeetingIntelligence({ theme }) {
         </ResultCard>
       </div>
 
-      <ApiResponsePanel data={result} theme={theme} />
+      {/* <ApiResponsePanel data={result} theme={theme} /> */}
     </div>
   );
 }

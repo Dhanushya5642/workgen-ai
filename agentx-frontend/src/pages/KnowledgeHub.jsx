@@ -77,7 +77,7 @@ export default function KnowledgeHub({ theme }) {
         </div>
       </ResultCard>
 
-      <ApiResponsePanel data={result} theme={theme} />
+      {/* <ApiResponsePanel data={result} theme={theme} /> */}
     </div>
   )
 }
