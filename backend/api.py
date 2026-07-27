@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -146,18 +146,13 @@ def journal(payload: JournalRequest):
 
 
 @app.post("/transcribe")
-def transcribe():
-    from backend.live_transcript import duration, model, record_audio, samplerate
+async def transcribe(file: UploadFile = File(...)):
+    """Receive browser-recorded audio and return transcribed text."""
+    from backend.live_transcript import transcribe_audio_file
 
-    audio_data = record_audio()
-    segments, _ = model.transcribe(audio_data, language="en")
-    lines = [segment.text.strip() for segment in segments if getattr(segment, "text", "").strip()]
-    return {
-        "transcript": " ".join(lines),
-        "segments": [{"text": line} for line in lines],
-        "duration": duration,
-        "sample_rate": samplerate,
-    }
+    audio_bytes = await file.read()
+    result = transcribe_audio_file(audio_bytes)
+    return result
 
 
 @app.post("/knowledge-hub")
@@ -295,3 +290,4 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
