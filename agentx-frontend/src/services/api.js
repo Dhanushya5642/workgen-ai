@@ -74,11 +74,30 @@ export function analyzeJournal(entry) {
   });
 }
 
-export function startTranscription() {
-  return request("/transcribe", {
+/** Send recorded audio blob to the backend for transcription */
+export async function sendAudioForTranscription(audioBlob) {
+  const formData = new FormData();
+  formData.append("file", audioBlob, "recording.webm");
+
+  const response = await fetch(`${API_BASE_URL}/transcribe`, {
     method: "POST",
-    body: {},
+    body: formData,
   });
+
+  const text = await response.text();
+  const data = text ? tryParseJson(text) : null;
+
+  if (!response.ok) {
+    const message =
+      data?.message ||
+      data?.error ||
+      data?.detail ||
+      text ||
+      `Request failed: ${response.status}`;
+    throw new Error(message);
+  }
+
+  return data;
 }
 
 export function searchKnowledgeHub(query) {
