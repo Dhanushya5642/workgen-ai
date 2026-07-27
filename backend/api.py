@@ -69,6 +69,12 @@ def _email_header(headers, name):
 
 
 def _parse_email_details(text, backend_main):
+    """
+    Parse an email to extract type, date, time and duration.
+    Supports dd/mm/yyyy, mm-dd-yyyy, yyyy-mm-dd date formats,
+    hh:mm am/pm and 24h time formats, and X hour/min duration formats.
+    Falls back to a keyword-based classifier if the AI classifier returns 'none'.
+    """
     lowered = text.lower()
     detected_type = backend_main.classify_email_type(text)
     if detected_type == "none":
@@ -100,90 +106,65 @@ def _parse_email_details(text, backend_main):
     if detected_type == "none":
         return None
 
+    # Date parsing: dd/mm/yyyy, dd-mm-yyyy, yyyy-mm-dd
     date_obj = None
     date_patterns = [
-        (r"(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})\b", False),
-        (r"(\d{1,2})(?:st|nd|rd|th)?\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*,?\s*(\d{4})?\b", True),
-        (r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*(\d{1,2})(?:st|nd|rd|th)?\s*,?\s*(\d{4})?\b", True),
-        (r"\b(\d{4})-(\d{1,2})-(\d{1,2})\b", False),
+        (r"(\d{1,2})/(\d{1,2})/(\d{4})", "%d/%m/%Y"),
+        (r"(\d{4})-(\d{1,2})-(\d{1,2})", "%Y-%m-%d"),
     ]
-    for pattern, is_named in date_patterns:
-        m = re.search(pattern, text if not is_named else lowered, re.IGNORECASE)
+    for pattern, fmt in date_patterns:
+        m = re.search(pattern, text)
         if m:
             try:
-                groups = [g for g in m.groups() if g]
-                if len(groups) >= 2:
-                    month_names = {"jan":1,"feb":2,"mar":3,"apr":4,"may":5,"jun":6,
-                                   "jul":7,"aug":8,"sep":9,"oct":10,"nov":11,"dec":12}
-                    if any(g.lower()[:3] in month_names for g in groups):
-                        d,mn,y = None,None,None
-                        for g in groups:
-                            gl = g.lower()[:3]
-                            if gl in month_names:
-                                mn = month_names[gl]
-                            elif g.isdigit() and len(g) == 4 and int(g) >= 2020:
-                                y = int(g)
-                            elif g.isdigit() and not y:
-                                if d is None:
-                                    d = int(g)
-                                else:
-                                    y = int(g) + 2000 if int(g) < 100 else int(g)
-                        if d and mn and (y or 2025):
-                            date_obj = datetime(int(y or 2025), mn, d).date()
-                    else:
-                        a,b,c = int(groups[0]), int(groups[1]), groups[2]
-                        if len(str(c)) == 2:
-                            c = 2000 + int(c)
-                        else:
-                            c = int(c)
-                        for d,m in [(a,b),(b,a)]:
-                            try:
-                                date_obj = datetime(c,m,d).date()
-                                break
-                            except:
-                                continue
+                date_obj = datetime.strptime(m.group(0), fmt).date()
             except:
                 pass
         if date_obj:
             break
 
     if not date_obj:
+        m = re.search(r"(\d{1,2})-(\d{1,2})-(\d{4})", text)
+        if m:
+            a, b, c = int(m.group(1)), int(m.group(2)), int(m.group(3))
+            for d, mth in [(a, b), (b, a)]:
+                try:
+                    date_obj = datetime(c, mth, d).date()
+                    break
+                except:
+                    continue
+
+    if not date_obj:
         return {"detected_type": detected_type, "title": detected_type.capitalize(),
                 "start": None, "duration_minutes": 60, "note": "No date found in email"}
 
+    # Time parsing: hh:mm am/pm or 24h format
     time_obj = None
-    m = re.search(r"(\d{1,2}):?(\d{2})?\s*(am|pm)", lowered)
+    m = re.search(r"(\d{1,2}:\d{2})\s*(am|pm)", lowered)
     if m:
         try:
-            h, mi, ap = int(m.group(1)), int(m.group(2) or 0), m.group(3).lower()
-            if ap == "pm" and h != 12:
-                h += 12
-            elif ap == "am" and h == 12:
-                h = 0
-            time_obj = datetime.strptime(f"{h:02d}:{mi:02d}", "%H:%M").time()
+            time_obj = datetime.strptime(m.group(1) + m.group(2), "%I:%M%p").time()
         except:
             pass
     if not time_obj:
-        m = re.search(r"\b(\d{1,2}):(\d{2})\b(?!\s*am|\s*pm)", lowered)
+        m = re.search(r"(\d{1,2}:\d{2})", lowered)
         if m:
             try:
-                h = int(m.group(1))
-                if 0 <= h <= 23:
-                    time_obj = datetime.strptime(f"{h:02d}:{m.group(2)}", "%H:%M").time()
+                time_obj = datetime.strptime(m.group(1), "%H:%M").time()
             except:
                 pass
 
     base_time = time_obj or datetime.strptime("09:00", "%H:%M").time()
     start = datetime.combine(date_obj, base_time).replace(tzinfo=backend_main.IST)
 
+    # Duration: X hour(s) or X min(s)
     duration_minutes = 60
-    m = re.search(r"(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b", lowered)
+    m = re.search(r"(\d+)\s*(hour|hr|h)", lowered)
     if m:
-        duration_minutes = int(float(m.group(1)) * 60)
+        duration_minutes = int(m.group(1)) * 60
     else:
-        m = re.search(r"(\d+(?:\.\d+)?)\s*(?:minutes?|mins?|min)\b", lowered)
+        m = re.search(r"(\d+)\s*(min|mins|minute|minutes)", lowered)
         if m:
-            duration_minutes = int(float(m.group(1)))
+            duration_minutes = int(m.group(1))
 
     return {
         "detected_type": detected_type,
@@ -278,35 +259,6 @@ def knowledge_hub(payload: KnowledgeRequest):
 
 @app.post("/scan-emails")
 def scan_emails(payload: EmailRequest):
-    # Handle actions (calendar / notion) first
-    if payload.action and payload.email:
-        try:
-            from backend import main as backend_main
-        except ModuleNotFoundError:
-            import sys
-            sys.path.insert(0, str(Path(__file__).resolve().parent))
-            import main as backend_main
-
-        email = payload.email
-        start = email.get("start")
-        if not start:
-            raise HTTPException(status_code=400, detail="Selected email has no detected date/time.")
-        start_time = datetime.fromisoformat(start)
-        title = email.get("title") or email.get("subject") or "AgentX Event"
-        intent_type = email.get("detected_type") or email.get("type") or "task"
-        duration_minutes = int(email.get("duration_minutes") or 60)
-        try:
-            if payload.action == "calendar":
-                backend_main.create_calendar_event(title, start_time, intent_type, duration_minutes)
-            elif payload.action == "notion":
-                backend_main.add_to_notion(title, start_time)
-            else:
-                raise HTTPException(status_code=400, detail="Unsupported action requested.")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to execute {payload.action} action: {e}")
-        return {"status": "ok", "message": f"{payload.action} action completed."}
-
-    # Scan emails — gracefully handle missing credentials / config
     try:
         from backend import main as backend_main
     except ModuleNotFoundError:
@@ -329,6 +281,7 @@ def scan_emails(payload: EmailRequest):
         results = gmail.users().messages().list(userId="me", labelIds=["UNREAD"], maxResults=5).execute()
         messages = results.get("messages", [])
         detected_emails = []
+        auto_results = []
         for message in messages:
             message_data = gmail.users().messages().get(userId="me", id=message["id"], format="full").execute()
             payload_data = message_data.get("payload", {})
@@ -337,13 +290,33 @@ def scan_emails(payload: EmailRequest):
             parsed = _parse_email_details(text, backend_main)
             if not parsed:
                 continue
-            detected_emails.append({
+            email = {
                 "id": message["id"],
                 "subject": _email_header(headers, "Subject") or parsed["title"],
                 "sender": _email_header(headers, "From"),
                 "preview": text[:500],
                 **parsed,
-            })
+            }
+            detected_emails.append(email)
+
+            # AUTO-PROCESS: automatically add to Calendar and Notion without asking user
+            auto_status = []
+            if parsed.get("start"):
+                start_time = datetime.fromisoformat(parsed["start"])
+                title = parsed["title"]
+                intent_type = parsed["detected_type"]
+                duration_minutes = parsed.get("duration_minutes", 60)
+                try:
+                    backend_main.create_calendar_event(title, start_time, intent_type, duration_minutes)
+                    auto_status.append("calendar_added")
+                except Exception as ce:
+                    auto_status.append(f"calendar_skipped: {str(ce)[:50]}")
+                try:
+                    backend_main.add_to_notion(title, start_time)
+                    auto_status.append("notion_added")
+                except Exception as ne:
+                    auto_status.append(f"notion_skipped: {str(ne)[:50]}")
+                email["auto_actions"] = auto_status
 
         return {
             "scanned_count": len(messages),
