@@ -1,6 +1,5 @@
 import base64
 import json
-import os
 import re
 import sys
 from datetime import datetime
@@ -44,11 +43,6 @@ class KnowledgeRequest(BaseModel):
     query: str = ""
 
 
-class PipelineRequest(BaseModel):
-    transcript: str = ""
-    use_sample: bool = True
-
-
 def _decode_email_body(payload):
     body = payload.get("body", {}).get("data")
     if body:
@@ -71,120 +65,21 @@ def _email_header(headers, name):
 def _parse_email_details(text, backend_main):
     lowered = text.lower()
     detected_type = backend_main.classify_email_type(text)
-    if detected_type == "none":
-        keyword_map = {
-            "meeting": [r"\bmeeting\b", r"\bmeet\b", r"\bagenda\b", r"\bconference\b",
-                        r"\bstandup\b", r"\bworkshop\b", r"\bsync\b", r"\bgather\b",
-                        r"\bschedule\b", r"\bappointment\b", r"\breminder\b",
-                        r"\bzoom\b", r"\bteams\b", r"\bvideo call\b", r"\bcall\b"],
-            "exam": [r"\bexam\b", r"\btest\b", r"\bquiz\b", r"\bassessment\b",
-                     r"\bfinal\b", r"\bpractical\b", r"\bgrade\b", r"\bscore\b",
-                     r"\bresult\b", r"\bmark\b", r"\bpaper\b", r"\bevaluation\b"],
-            "interview": [r"\binterview\b", r"\brecruiter\b", r"\bhiring\b",
-                          r"\bplacement\b", r"\bhr\b", r"\bpanel\b", r"\boffer\b"],
-            "payment": [r"\bpayment\b", r"\bbill\b", r"\binvoice\b", r"\breceipt\b",
-                        r"\bdue\b", r"\btransaction\b", r"\bpay\b", r"\bamount\b",
-                        r"\bpaid\b", r"\brefund\b", r"\bsubscription\b"],
-            "task": [r"\btask\b", r"\bdeadline\b", r"\bassignment\b",
-                     r"\bsubmission\b", r"\bproject\b", r"\bdeliverable\b",
-                     r"\btodo\b", r"\baction\b", r"\bwork\b", r"\bprogress\b",
-                     r"\bstatus\b", r"\bupdate\b", r"\bpending\b", r"\bapproval\b"]
-        }
-        for etype, patterns in keyword_map.items():
-            for pat in patterns:
-                if re.search(pat, lowered):
-                    detected_type = etype
-                    break
-            if detected_type != "none":
-                break
+    if "exam" in lowered:
+        detected_type = "exam"
+    elif "meeting" in lowered:
+        detected_type = "meeting"
     if detected_type == "none":
         return None
-
-    date_obj = None
-    date_patterns = [
-        (r"(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})\b", False),
-        (r"(\d{1,2})(?:st|nd|rd|th)?\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*,?\s*(\d{4})?\b", True),
-        (r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*(\d{1,2})(?:st|nd|rd|th)?\s*,?\s*(\d{4})?\b", True),
-        (r"\b(\d{4})-(\d{1,2})-(\d{1,2})\b", False),
-    ]
-    for pattern, is_named in date_patterns:
-        m = re.search(pattern, text if not is_named else lowered, re.IGNORECASE)
-        if m:
-            try:
-                groups = [g for g in m.groups() if g]
-                if len(groups) >= 2:
-                    month_names = {"jan":1,"feb":2,"mar":3,"apr":4,"may":5,"jun":6,
-                                   "jul":7,"aug":8,"sep":9,"oct":10,"nov":11,"dec":12}
-                    if any(g.lower()[:3] in month_names for g in groups):
-                        d,mn,y = None,None,None
-                        for g in groups:
-                            gl = g.lower()[:3]
-                            if gl in month_names:
-                                mn = month_names[gl]
-                            elif g.isdigit() and len(g) == 4 and int(g) >= 2020:
-                                y = int(g)
-                            elif g.isdigit() and not y:
-                                if d is None:
-                                    d = int(g)
-                                else:
-                                    y = int(g) + 2000 if int(g) < 100 else int(g)
-                        if d and mn and (y or 2025):
-                            date_obj = datetime(int(y or 2025), mn, d).date()
-                    else:
-                        a,b,c = int(groups[0]), int(groups[1]), groups[2]
-                        if len(str(c)) == 2:
-                            c = 2000 + int(c)
-                        else:
-                            c = int(c)
-                        for d,m in [(a,b),(b,a)]:
-                            try:
-                                date_obj = datetime(c,m,d).date()
-                                break
-                            except:
-                                continue
-            except:
-                pass
-        if date_obj:
-            break
-
-    if not date_obj:
-        return {"detected_type": detected_type, "title": detected_type.capitalize(),
-                "start": None, "duration_minutes": 60, "note": "No date found in email"}
-
-    time_obj = None
-    m = re.search(r"(\d{1,2}):?(\d{2})?\s*(am|pm)", lowered)
-    if m:
-        try:
-            h, mi, ap = int(m.group(1)), int(m.group(2) or 0), m.group(3).lower()
-            if ap == "pm" and h != 12:
-                h += 12
-            elif ap == "am" and h == 12:
-                h = 0
-            time_obj = datetime.strptime(f"{h:02d}:{mi:02d}", "%H:%M").time()
-        except:
-            pass
-    if not time_obj:
-        m = re.search(r"\b(\d{1,2}):(\d{2})\b(?!\s*am|\s*pm)", lowered)
-        if m:
-            try:
-                h = int(m.group(1))
-                if 0 <= h <= 23:
-                    time_obj = datetime.strptime(f"{h:02d}:{m.group(2)}", "%H:%M").time()
-            except:
-                pass
-
-    base_time = time_obj or datetime.strptime("09:00", "%H:%M").time()
-    start = datetime.combine(date_obj, base_time).replace(tzinfo=backend_main.IST)
-
-    duration_minutes = 60
-    m = re.search(r"(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b", lowered)
-    if m:
-        duration_minutes = int(float(m.group(1)) * 60)
-    else:
-        m = re.search(r"(\d+(?:\.\d+)?)\s*(?:minutes?|mins?|min)\b", lowered)
-        if m:
-            duration_minutes = int(float(m.group(1)))
-
+    date_match = re.search(r"(\d{1,2}/\d{1,2}/\d{4})", text)
+    if not date_match:
+        return None
+    date_obj = datetime.strptime(date_match.group(1), "%d/%m/%Y")
+    time_match = re.search(r"(\d{1,2}:\d{2}\s*(am|pm))", lowered)
+    time_obj = datetime.strptime(time_match.group(1), "%I:%M %p").time() if time_match else datetime.strptime("09:00", "%H:%M").time()
+    duration_match = re.search(r"(\d+(\.\d+)?)\s*hour", lowered)
+    duration_minutes = int(float(duration_match.group(1)) * 60) if duration_match else 60
+    start = datetime.combine(date_obj.date(), time_obj).replace(tzinfo=backend_main.IST)
     return {
         "detected_type": detected_type,
         "title": detected_type.capitalize(),
@@ -210,53 +105,56 @@ def health_check():
 
 @app.post("/summarize")
 def summarize(payload: TranscriptRequest):
-    from backend.knowledge_hub import store_meeting
-    from backend.meeting_summarizer import summarize_meeting
+    try:
+        from backend.knowledge_hub import store_meeting
+        from backend.meeting_summarizer import summarize_meeting
 
-    result = summarize_meeting(payload.transcript)
-    store_meeting(result)
-    return result
+        result = summarize_meeting(payload.transcript)
+        if result:
+            store_meeting(result)
+        return result or {"error": "Failed to generate summary", "summary": "", "decisions": [], "actions": [], "next_steps": []}
+    except Exception as e:
+        return {"error": str(e), "summary": "", "decisions": [], "actions": [], "next_steps": []}
 
 
 @app.post("/research")
 def research(payload: TopicRequest):
-    from backend.research_engine import generate_research_package
+    try:
+        from backend.research_engine import generate_research_package
 
-    return generate_research_package(payload.topic)
+        result = generate_research_package(payload.topic)
+        return result or {"error": "Failed to generate research", "overview": "", "outline": [], "key_concepts": [], "research_questions": [], "citations": []}
+    except Exception as e:
+        return {"error": str(e), "overview": "", "outline": [], "key_concepts": [], "research_questions": [], "citations": []}
 
 
 @app.post("/journal")
 def journal(payload: JournalRequest):
-    from backend.journal_ai import adjust_tasks, analyze_emotion, log_mood, reminder_strategy
+    try:
+        from backend.journal_ai import adjust_tasks, analyze_emotion, log_mood, reminder_strategy
 
-    emotion_data = analyze_emotion(payload.entry)
-    log_mood(emotion_data)
-    tasks = [
-        {"task": "Finish research paper", "priority": 1, "difficulty": 9},
-        {"task": "Reply to emails", "priority": 3, "difficulty": 2},
-        {"task": "Prepare presentation slides", "priority": 2, "difficulty": 6},
-        {"task": "Read research articles", "priority": 4, "difficulty": 3},
-    ]
-    return {
-        **emotion_data,
-        "optimized_tasks": adjust_tasks(tasks, emotion_data["stress_level"]),
-        "reminder_strategy": reminder_strategy(emotion_data["stress_level"]),
-    }
+        emotion_data = analyze_emotion(payload.entry)
+        log_mood(emotion_data)
+        tasks = [
+            {"task": "Finish research paper", "priority": 1, "difficulty": 9},
+            {"task": "Reply to emails", "priority": 3, "difficulty": 2},
+            {"task": "Prepare presentation slides", "priority": 2, "difficulty": 6},
+            {"task": "Read research articles", "priority": 4, "difficulty": 3},
+        ]
+        return {
+            **emotion_data,
+            "optimized_tasks": adjust_tasks(tasks, emotion_data["stress_level"]),
+            "reminder_strategy": reminder_strategy(emotion_data["stress_level"]),
+        }
+    except Exception as e:
+        return {"error": str(e), "emotion": "unknown", "stress_level": 5, "focus_level": 5, "suggestion": "Analysis failed. Check Ollama is running."}
 
 
 @app.post("/transcribe")
 def transcribe():
-    from backend.live_transcript import duration, model, record_audio, samplerate
+    from backend.live_transcript import transcribe_audio
 
-    audio_data = record_audio()
-    segments, _ = model.transcribe(audio_data, language="en")
-    lines = [segment.text.strip() for segment in segments if getattr(segment, "text", "").strip()]
-    return {
-        "transcript": " ".join(lines),
-        "segments": [{"text": line} for line in lines],
-        "duration": duration,
-        "sample_rate": samplerate,
-    }
+    return transcribe_audio()
 
 
 @app.post("/knowledge-hub")
@@ -278,15 +176,14 @@ def knowledge_hub(payload: KnowledgeRequest):
 
 @app.post("/scan-emails")
 def scan_emails(payload: EmailRequest):
-    # Handle actions (calendar / notion) first
-    if payload.action and payload.email:
-        try:
-            from backend import main as backend_main
-        except ModuleNotFoundError:
-            import sys
-            sys.path.insert(0, str(Path(__file__).resolve().parent))
-            import main as backend_main
+    try:
+        from backend import main as backend_main
+    except ModuleNotFoundError:
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import main as backend_main
 
+    if payload.action and payload.email:
         email = payload.email
         start = email.get("start")
         if not start:
@@ -295,34 +192,15 @@ def scan_emails(payload: EmailRequest):
         title = email.get("title") or email.get("subject") or "AgentX Event"
         intent_type = email.get("detected_type") or email.get("type") or "task"
         duration_minutes = int(email.get("duration_minutes") or 60)
-        try:
-            if payload.action == "calendar":
-                backend_main.create_calendar_event(title, start_time, intent_type, duration_minutes)
-            elif payload.action == "notion":
-                backend_main.add_to_notion(title, start_time)
-            else:
-                raise HTTPException(status_code=400, detail="Unsupported action requested.")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to execute {payload.action} action: {e}")
+        if payload.action == "calendar":
+            backend_main.create_calendar_event(title, start_time, intent_type, duration_minutes)
+        elif payload.action == "notion":
+            backend_main.add_to_notion(title, start_time)
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported action requested.")
         return {"status": "ok", "message": f"{payload.action} action completed."}
 
-    # Scan emails — gracefully handle missing credentials / config
-    try:
-        from backend import main as backend_main
-    except ModuleNotFoundError:
-        import sys
-        sys.path.insert(0, str(Path(__file__).resolve().parent))
-        import main as backend_main
-
-    # Check if credentials exist
-    if not os.path.exists("credentials.json"):
-        return {
-            "scanned_count": 0,
-            "detected_emails": [],
-            "upcoming_events": _load_json_list("events.json"),
-            "error": "Gmail API not configured. Place a 'credentials.json' file from Google Cloud Console in the project root.",
-        }
-
+    # Try to scan Gmail, fallback gracefully if credentials not configured
     try:
         creds = backend_main.get_credentials()
         gmail = backend_main.build("gmail", "v1", credentials=creds)
@@ -344,49 +222,18 @@ def scan_emails(payload: EmailRequest):
                 "preview": text[:500],
                 **parsed,
             })
-
-        return {
-            "scanned_count": len(messages),
-            "detected_emails": detected_emails,
-            "upcoming_events": _load_json_list("events.json"),
-        }
     except Exception as e:
         return {
             "scanned_count": 0,
             "detected_emails": [],
             "upcoming_events": _load_json_list("events.json"),
-            "error": f"Gmail scan failed: {e}",
+            "error": f"Gmail scan failed: {e}. Make sure credentials.json and token.json are set up.",
         }
 
-
-@app.post("/pipeline/run")
-def pipeline_run(payload: PipelineRequest):
-    from backend.knowledge_hub import store_meeting
-    from backend.meeting_summarizer import summarize_meeting
-
-    sample_transcript = (
-        "Alice: We need to finish the AgentX meeting summarizer.\n"
-        "Bob: I'll integrate the Notion API.\n"
-        "Charlie: I'll test the system tomorrow.\n"
-        "Alice: Let's present it Friday.\n"
-    )
-
-    transcript = payload.transcript if payload.transcript.strip() else sample_transcript
-
-    summary = summarize_meeting(transcript)
-    store_meeting(summary)
-
-    notion_status = "Notion token not configured"
-    try:
-        from backend.notion_writer import write_summary
-        write_summary(summary)
-        notion_status = "Summary saved to Notion"
-    except Exception as e:
-        notion_status = f"Notion write skipped: {e}"
-
     return {
-        "summary_data": summary,
-        "notion": {"message": notion_status},
+        "scanned_count": len(messages),
+        "detected_emails": detected_emails,
+        "upcoming_events": _load_json_list("events.json"),
     }
 
 
