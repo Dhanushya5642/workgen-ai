@@ -207,8 +207,14 @@ def save_event_locally(title, start_time):
 
 def add_to_notion(title, start_time):
 
+    if NOTION_TOKEN is None:
+        raise RuntimeError(
+            "Notion API is not configured. "
+            "Set the NOTION_MEETING_TOKEN environment variable in a .env file."
+        )
+
     if not notion:
-        return
+        raise RuntimeError("Notion client failed to initialise.")
 
     try:
         notion.pages.create(
@@ -225,6 +231,7 @@ def add_to_notion(title, start_time):
 
     except Exception as e:
         print("Notion Error:", e)
+        raise
 
 
 # ---------------- CALENDAR ---------------- #
