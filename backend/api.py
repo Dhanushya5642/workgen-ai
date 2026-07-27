@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 import re
 import sys
 from datetime import datetime
@@ -41,6 +42,11 @@ class EmailRequest(BaseModel):
 
 class KnowledgeRequest(BaseModel):
     query: str = ""
+
+
+class PipelineRequest(BaseModel):
+    transcript: str = ""
+    use_sample: bool = True
 
 
 def _decode_email_body(payload):
@@ -105,56 +111,53 @@ def health_check():
 
 @app.post("/summarize")
 def summarize(payload: TranscriptRequest):
-    try:
-        from backend.knowledge_hub import store_meeting
-        from backend.meeting_summarizer import summarize_meeting
+    from backend.knowledge_hub import store_meeting
+    from backend.meeting_summarizer import summarize_meeting
 
-        result = summarize_meeting(payload.transcript)
-        if result:
-            store_meeting(result)
-        return result or {"error": "Failed to generate summary", "summary": "", "decisions": [], "actions": [], "next_steps": []}
-    except Exception as e:
-        return {"error": str(e), "summary": "", "decisions": [], "actions": [], "next_steps": []}
+    result = summarize_meeting(payload.transcript)
+    store_meeting(result)
+    return result
 
 
 @app.post("/research")
 def research(payload: TopicRequest):
-    try:
-        from backend.research_engine import generate_research_package
+    from backend.research_engine import generate_research_package
 
-        result = generate_research_package(payload.topic)
-        return result or {"error": "Failed to generate research", "overview": "", "outline": [], "key_concepts": [], "research_questions": [], "citations": []}
-    except Exception as e:
-        return {"error": str(e), "overview": "", "outline": [], "key_concepts": [], "research_questions": [], "citations": []}
+    return generate_research_package(payload.topic)
 
 
 @app.post("/journal")
 def journal(payload: JournalRequest):
-    try:
-        from backend.journal_ai import adjust_tasks, analyze_emotion, log_mood, reminder_strategy
+    from backend.journal_ai import adjust_tasks, analyze_emotion, log_mood, reminder_strategy
 
-        emotion_data = analyze_emotion(payload.entry)
-        log_mood(emotion_data)
-        tasks = [
-            {"task": "Finish research paper", "priority": 1, "difficulty": 9},
-            {"task": "Reply to emails", "priority": 3, "difficulty": 2},
-            {"task": "Prepare presentation slides", "priority": 2, "difficulty": 6},
-            {"task": "Read research articles", "priority": 4, "difficulty": 3},
-        ]
-        return {
-            **emotion_data,
-            "optimized_tasks": adjust_tasks(tasks, emotion_data["stress_level"]),
-            "reminder_strategy": reminder_strategy(emotion_data["stress_level"]),
-        }
-    except Exception as e:
-        return {"error": str(e), "emotion": "unknown", "stress_level": 5, "focus_level": 5, "suggestion": "Analysis failed. Check Ollama is running."}
+    emotion_data = analyze_emotion(payload.entry)
+    log_mood(emotion_data)
+    tasks = [
+        {"task": "Finish research paper", "priority": 1, "difficulty": 9},
+        {"task": "Reply to emails", "priority": 3, "difficulty": 2},
+        {"task": "Prepare presentation slides", "priority": 2, "difficulty": 6},
+        {"task": "Read research articles", "priority": 4, "difficulty": 3},
+    ]
+    return {
+        **emotion_data,
+        "optimized_tasks": adjust_tasks(tasks, emotion_data["stress_level"]),
+        "reminder_strategy": reminder_strategy(emotion_data["stress_level"]),
+    }
 
 
 @app.post("/transcribe")
 def transcribe():
-    from backend.live_transcript import transcribe_audio
+    from backend.live_transcript import duration, model, record_audio, samplerate
 
-    return transcribe_audio()
+    audio_data = record_audio()
+    segments, _ = model.transcribe(audio_data, language="en")
+    lines = [segment.text.strip() for segment in segments if getattr(segment, "text", "").strip()]
+    return {
+        "transcript": " ".join(lines),
+        "segments": [{"text": line} for line in lines],
+        "duration": duration,
+        "sample_rate": samplerate,
+    }
 
 
 @app.post("/knowledge-hub")
@@ -176,14 +179,15 @@ def knowledge_hub(payload: KnowledgeRequest):
 
 @app.post("/scan-emails")
 def scan_emails(payload: EmailRequest):
-    try:
-        from backend import main as backend_main
-    except ModuleNotFoundError:
-        import sys
-        sys.path.insert(0, str(Path(__file__).resolve().parent))
-        import main as backend_main
-
+    # Handle actions (calendar / notion) first
     if payload.action and payload.email:
+        try:
+            from backend import main as backend_main
+        except ModuleNotFoundError:
+            import sys
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            import main as backend_main
+
         email = payload.email
         start = email.get("start")
         if not start:
@@ -192,15 +196,34 @@ def scan_emails(payload: EmailRequest):
         title = email.get("title") or email.get("subject") or "AgentX Event"
         intent_type = email.get("detected_type") or email.get("type") or "task"
         duration_minutes = int(email.get("duration_minutes") or 60)
-        if payload.action == "calendar":
-            backend_main.create_calendar_event(title, start_time, intent_type, duration_minutes)
-        elif payload.action == "notion":
-            backend_main.add_to_notion(title, start_time)
-        else:
-            raise HTTPException(status_code=400, detail="Unsupported action requested.")
+        try:
+            if payload.action == "calendar":
+                backend_main.create_calendar_event(title, start_time, intent_type, duration_minutes)
+            elif payload.action == "notion":
+                backend_main.add_to_notion(title, start_time)
+            else:
+                raise HTTPException(status_code=400, detail="Unsupported action requested.")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to execute {payload.action} action: {e}")
         return {"status": "ok", "message": f"{payload.action} action completed."}
 
-    # Try to scan Gmail, fallback gracefully if credentials not configured
+    # Scan emails — gracefully handle missing credentials / config
+    try:
+        from backend import main as backend_main
+    except ModuleNotFoundError:
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import main as backend_main
+
+    # Check if credentials exist
+    if not os.path.exists("credentials.json"):
+        return {
+            "scanned_count": 0,
+            "detected_emails": [],
+            "upcoming_events": _load_json_list("events.json"),
+            "error": "Gmail API not configured. Place a 'credentials.json' file from Google Cloud Console in the project root.",
+        }
+
     try:
         creds = backend_main.get_credentials()
         gmail = backend_main.build("gmail", "v1", credentials=creds)
@@ -222,18 +245,49 @@ def scan_emails(payload: EmailRequest):
                 "preview": text[:500],
                 **parsed,
             })
+
+        return {
+            "scanned_count": len(messages),
+            "detected_emails": detected_emails,
+            "upcoming_events": _load_json_list("events.json"),
+        }
     except Exception as e:
         return {
             "scanned_count": 0,
             "detected_emails": [],
             "upcoming_events": _load_json_list("events.json"),
-            "error": f"Gmail scan failed: {e}. Make sure credentials.json and token.json are set up.",
+            "error": f"Gmail scan failed: {e}",
         }
 
+
+@app.post("/pipeline/run")
+def pipeline_run(payload: PipelineRequest):
+    from backend.knowledge_hub import store_meeting
+    from backend.meeting_summarizer import summarize_meeting
+
+    sample_transcript = (
+        "Alice: We need to finish the AgentX meeting summarizer.\n"
+        "Bob: I'll integrate the Notion API.\n"
+        "Charlie: I'll test the system tomorrow.\n"
+        "Alice: Let's present it Friday.\n"
+    )
+
+    transcript = payload.transcript if payload.transcript.strip() else sample_transcript
+
+    summary = summarize_meeting(transcript)
+    store_meeting(summary)
+
+    notion_status = "Notion token not configured"
+    try:
+        from backend.notion_writer import write_summary
+        write_summary(summary)
+        notion_status = "Summary saved to Notion"
+    except Exception as e:
+        notion_status = f"Notion write skipped: {e}"
+
     return {
-        "scanned_count": len(messages),
-        "detected_emails": detected_emails,
-        "upcoming_events": _load_json_list("events.json"),
+        "summary_data": summary,
+        "notion": {"message": notion_status},
     }
 
 
