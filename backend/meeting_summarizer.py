@@ -10,7 +10,7 @@ You are a meeting assistant.
 Return ONLY valid JSON:
 
 {{
-  "title": "short meeting title"
+  "title": "short meeting title",
   "summary": "short summary",
   "decisions": [],
   "actions": [],

@@ -105,53 +105,56 @@ def health_check():
 
 @app.post("/summarize")
 def summarize(payload: TranscriptRequest):
-    from backend.knowledge_hub import store_meeting
-    from backend.meeting_summarizer import summarize_meeting
+    try:
+        from backend.knowledge_hub import store_meeting
+        from backend.meeting_summarizer import summarize_meeting
 
-    result = summarize_meeting(payload.transcript)
-    store_meeting(result)
-    return result
+        result = summarize_meeting(payload.transcript)
+        if result:
+            store_meeting(result)
+        return result or {"error": "Failed to generate summary", "summary": "", "decisions": [], "actions": [], "next_steps": []}
+    except Exception as e:
+        return {"error": str(e), "summary": "", "decisions": [], "actions": [], "next_steps": []}
 
 
 @app.post("/research")
 def research(payload: TopicRequest):
-    from backend.research_engine import generate_research_package
+    try:
+        from backend.research_engine import generate_research_package
 
-    return generate_research_package(payload.topic)
+        result = generate_research_package(payload.topic)
+        return result or {"error": "Failed to generate research", "overview": "", "outline": [], "key_concepts": [], "research_questions": [], "citations": []}
+    except Exception as e:
+        return {"error": str(e), "overview": "", "outline": [], "key_concepts": [], "research_questions": [], "citations": []}
 
 
 @app.post("/journal")
 def journal(payload: JournalRequest):
-    from backend.journal_ai import adjust_tasks, analyze_emotion, log_mood, reminder_strategy
+    try:
+        from backend.journal_ai import adjust_tasks, analyze_emotion, log_mood, reminder_strategy
 
-    emotion_data = analyze_emotion(payload.entry)
-    log_mood(emotion_data)
-    tasks = [
-        {"task": "Finish research paper", "priority": 1, "difficulty": 9},
-        {"task": "Reply to emails", "priority": 3, "difficulty": 2},
-        {"task": "Prepare presentation slides", "priority": 2, "difficulty": 6},
-        {"task": "Read research articles", "priority": 4, "difficulty": 3},
-    ]
-    return {
-        **emotion_data,
-        "optimized_tasks": adjust_tasks(tasks, emotion_data["stress_level"]),
-        "reminder_strategy": reminder_strategy(emotion_data["stress_level"]),
-    }
+        emotion_data = analyze_emotion(payload.entry)
+        log_mood(emotion_data)
+        tasks = [
+            {"task": "Finish research paper", "priority": 1, "difficulty": 9},
+            {"task": "Reply to emails", "priority": 3, "difficulty": 2},
+            {"task": "Prepare presentation slides", "priority": 2, "difficulty": 6},
+            {"task": "Read research articles", "priority": 4, "difficulty": 3},
+        ]
+        return {
+            **emotion_data,
+            "optimized_tasks": adjust_tasks(tasks, emotion_data["stress_level"]),
+            "reminder_strategy": reminder_strategy(emotion_data["stress_level"]),
+        }
+    except Exception as e:
+        return {"error": str(e), "emotion": "unknown", "stress_level": 5, "focus_level": 5, "suggestion": "Analysis failed. Check Ollama is running."}
 
 
 @app.post("/transcribe")
 def transcribe():
-    from backend.live_transcript import duration, model, record_audio, samplerate
+    from backend.live_transcript import transcribe_audio
 
-    audio_data = record_audio()
-    segments, _ = model.transcribe(audio_data, language="en")
-    lines = [segment.text.strip() for segment in segments if getattr(segment, "text", "").strip()]
-    return {
-        "transcript": " ".join(lines),
-        "segments": [{"text": line} for line in lines],
-        "duration": duration,
-        "sample_rate": samplerate,
-    }
+    return transcribe_audio()
 
 
 @app.post("/knowledge-hub")
@@ -197,26 +200,35 @@ def scan_emails(payload: EmailRequest):
             raise HTTPException(status_code=400, detail="Unsupported action requested.")
         return {"status": "ok", "message": f"{payload.action} action completed."}
 
-    creds = backend_main.get_credentials()
-    gmail = backend_main.build("gmail", "v1", credentials=creds)
-    results = gmail.users().messages().list(userId="me", labelIds=["UNREAD"], maxResults=5).execute()
-    messages = results.get("messages", [])
-    detected_emails = []
-    for message in messages:
-        message_data = gmail.users().messages().get(userId="me", id=message["id"], format="full").execute()
-        payload_data = message_data.get("payload", {})
-        headers = payload_data.get("headers", [])
-        text = _decode_email_body(payload_data) or message_data.get("snippet", "")
-        parsed = _parse_email_details(text, backend_main)
-        if not parsed:
-            continue
-        detected_emails.append({
-            "id": message["id"],
-            "subject": _email_header(headers, "Subject") or parsed["title"],
-            "sender": _email_header(headers, "From"),
-            "preview": text[:500],
-            **parsed,
-        })
+    # Try to scan Gmail, fallback gracefully if credentials not configured
+    try:
+        creds = backend_main.get_credentials()
+        gmail = backend_main.build("gmail", "v1", credentials=creds)
+        results = gmail.users().messages().list(userId="me", labelIds=["UNREAD"], maxResults=5).execute()
+        messages = results.get("messages", [])
+        detected_emails = []
+        for message in messages:
+            message_data = gmail.users().messages().get(userId="me", id=message["id"], format="full").execute()
+            payload_data = message_data.get("payload", {})
+            headers = payload_data.get("headers", [])
+            text = _decode_email_body(payload_data) or message_data.get("snippet", "")
+            parsed = _parse_email_details(text, backend_main)
+            if not parsed:
+                continue
+            detected_emails.append({
+                "id": message["id"],
+                "subject": _email_header(headers, "Subject") or parsed["title"],
+                "sender": _email_header(headers, "From"),
+                "preview": text[:500],
+                **parsed,
+            })
+    except Exception as e:
+        return {
+            "scanned_count": 0,
+            "detected_emails": [],
+            "upcoming_events": _load_json_list("events.json"),
+            "error": f"Gmail scan failed: {e}. Make sure credentials.json and token.json are set up.",
+        }
 
     return {
         "scanned_count": len(messages),

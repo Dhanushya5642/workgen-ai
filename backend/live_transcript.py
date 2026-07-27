@@ -1,3 +1,6 @@
+import json
+import os
+
 try:
     import sounddevice as sd
     import numpy as np
@@ -12,7 +15,17 @@ except ImportError:
 samplerate = 16000
 duration = 5
 
-model = None
+_model_instance = None
+
+
+def get_whisper_model():
+    global _model_instance
+    if _model_instance is None and WhisperModel is not None:
+        try:
+            _model_instance = WhisperModel("tiny", compute_type="int8")
+        except Exception as e:
+            print(f"Failed to load Whisper model: {e}")
+    return _model_instance
 
 
 def record_audio():
@@ -31,6 +44,41 @@ def record_audio():
     return audio.flatten()
 
 
+def transcribe_audio():
+    """Safe transcription function that returns dict for API endpoints."""
+    if not WHISPER_AVAILABLE:
+        return {
+            "transcript": "",
+            "segments": [],
+            "error": "faster-whisper, sounddevice, or numpy not installed"
+        }
+
+    model = get_whisper_model()
+    if model is None:
+        return {
+            "transcript": "",
+            "segments": [],
+            "error": "Failed to load Whisper model"
+        }
+
+    try:
+        audio_data = record_audio()
+        segments, _ = model.transcribe(audio_data, language="en")
+        lines = [segment.text.strip() for segment in segments if getattr(segment, "text", "").strip()]
+        return {
+            "transcript": " ".join(lines),
+            "segments": [{"text": line} for line in lines],
+            "duration": duration,
+            "sample_rate": samplerate,
+        }
+    except Exception as e:
+        return {
+            "transcript": "",
+            "segments": [],
+            "error": str(e)
+        }
+
+
 # -------- FUNCTION CALLED FROM MAIN -------- #
 
 def run_live_transcription():
@@ -38,9 +86,10 @@ def run_live_transcription():
         print("Live transcription dependencies are not installed. Install faster-whisper, sounddevice, and numpy.")
         return
 
-    global model
+    model = get_whisper_model()
     if model is None:
-        model = WhisperModel("tiny", compute_type="int8")
+        print("Failed to load Whisper model.")
+        return
 
     print("🎤 Live transcription started")
     print("Press Ctrl+C to stop\n")
@@ -65,3 +114,4 @@ def run_live_transcription():
 
 if __name__ == "__main__":
     run_live_transcription()
+
