@@ -88,4 +88,11 @@ export function searchKnowledgeHub(query) {
   });
 }
 
+export function runMeetingPipeline(transcript, useSample) {
+  return request("/pipeline/run", {
+    method: "POST",
+    body: { transcript, use_sample: useSample },
+  });
+}
+
 export { API_BASE_URL };

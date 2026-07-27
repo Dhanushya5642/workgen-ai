@@ -37,10 +37,24 @@
             cursor: pointer;
         }
 
+        button:hover {
+            background: #2563eb;
+        }
+
+        button:disabled {
+            background: #64748b;
+            cursor: not-allowed;
+        }
+
         textarea, input {
             width: 100%;
             margin-top: 10px;
             padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #334155;
+            background: #1e293b;
+            color: white;
+            box-sizing: border-box;
         }
 
         .output {
@@ -50,6 +64,9 @@
             border-radius: 5px;
             white-space: pre-wrap;
             min-height: 80px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 13px;
         }
     </style>
 </head>
@@ -57,37 +74,38 @@
 <body>
 
 <h1>🤖 AgentX UI</h1>
+<p style="text-align:center;color:#94a3b8;">Make sure the backend server is running on <strong>http://127.0.0.1:8000</strong></p>
 
 <div class="container">
 
     <!-- EMAIL -->
     <div class="card">
         <h3>Email Automation</h3>
-        <button onclick="runEmail()">Run</button>
+        <button id="emailBtn" onclick="runEmail()">Run</button>
         <div id="emailOut" class="output"></div>
     </div>
 
     <!-- MEETING -->
     <div class="card">
         <h3>Meeting Summarizer</h3>
-        <textarea id="transcript"></textarea>
-        <button onclick="runMeeting()">Summarize</button>
+        <textarea id="transcript" placeholder="Paste your meeting transcript here..."></textarea>
+        <button id="meetingBtn" onclick="runMeeting()">Summarize</button>
         <div id="meetingOut" class="output"></div>
     </div>
 
     <!-- RESEARCH -->
     <div class="card">
-        <h3>Research</h3>
-        <input id="topic" placeholder="Enter topic"/>
-        <button onclick="runResearch()">Run</button>
+        <h3>Research Copilot</h3>
+        <input id="topic" placeholder="Enter research topic"/>
+        <button id="researchBtn" onclick="runResearch()">Generate Research</button>
         <div id="researchOut" class="output"></div>
     </div>
 
     <!-- JOURNAL -->
     <div class="card">
-        <h3>Journal</h3>
-        <textarea id="journal"></textarea>
-        <button onclick="runJournal()">Run</button>
+        <h3>Journal AI</h3>
+        <textarea id="journal" placeholder="Write your journal entry..."></textarea>
+        <button id="journalBtn" onclick="runJournal()">Analyze Emotion</button>
         <div id="journalOut" class="output"></div>
     </div>
 
@@ -97,58 +115,42 @@
 
 const BASE_URL = "http://127.0.0.1:8000"
 
-let loopStarted = false
-let isRunning = false
+function setLoading(btnId, loading) {
+    const btn = document.getElementById(btnId);
+    if (btn) btn.disabled = loading;
+}
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms))
+async function apiPost(endpoint, body) {
+    const res = await fetch(`${BASE_URL}${endpoint}`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `HTTP ${res.status}`);
+    }
+    return res.json();
 }
 
 // ---------------- EMAIL ---------------- //
 
 async function runEmail() {
-
     const out = document.getElementById("emailOut")
-
-    if (isRunning) return   // prevent multiple clicks
-    isRunning = true
-
-    console.log("🔥 Email flow started")
-
-    // -------- FIRST RUN -------- //
+    setLoading("emailBtn", true)
     out.innerText = "🔍 Scanning emails..."
-    await sleep(2000)
 
-    out.innerText = "📡 Connecting to Gmail..."
-    await sleep(2000)
-
-    out.innerText = "📅 Creating events..."
-    await sleep(2000)
-
-    // Try backend (optional, safe)
     try {
-        await fetch(`${BASE_URL}/email/run`, { method: "POST" })
+        const data = await apiPost("/scan-emails", {})
+        out.innerText = JSON.stringify({
+            scanned: data.scanned_count,
+            emails_detected: data.detected_emails?.length || 0,
+            upcoming_events: data.upcoming_events?.length || 0
+        }, null, 2)
     } catch (e) {
-        console.log("Backend not reachable, continuing demo mode")
-    }
-
-    out.innerText = "📅 Added to Calendar\n📝 Added to Notion"
-    await sleep(2000)
-
-    out.innerText = "😴 Sleeping for 30 seconds..."
-
-    // -------- LOOP -------- //
-    if (!loopStarted) {
-        loopStarted = true
-
-        setInterval(async () => {
-
-            out.innerText = "🔍 Scanning emails..."
-            await sleep(3000)
-
-            out.innerText = "😴 Sleeping for 30 seconds..."
-
-        }, 30000)
+        out.innerText = "⚠ Backend not reachable\n\nMake sure the FastAPI server is running on port 8000:\n  cd backend && uvicorn api:app --reload --port 8000"
+    } finally {
+        setLoading("emailBtn", false)
     }
 }
 
@@ -158,21 +160,23 @@ async function runEmail() {
 async function runMeeting() {
     const text = document.getElementById("transcript").value
     const out = document.getElementById("meetingOut")
+    setLoading("meetingBtn", true)
+
+    if (!text.trim()) {
+        out.innerText = "⚠ Please enter a meeting transcript first."
+        setLoading("meetingBtn", false)
+        return
+    }
 
     out.innerText = "Processing..."
 
     try {
-        let res = await fetch(`${BASE_URL}/meeting/summarize`, {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ transcript: text })
-        })
-
-        let data = await res.json()
+        const data = await apiPost("/summarize", { transcript: text })
         out.innerText = JSON.stringify(data, null, 2)
-
     } catch (e) {
-        out.innerText = "⚠ Backend not reachable"
+        out.innerText = "⚠ Backend not reachable\n\nMake sure the FastAPI server is running on port 8000:\n  cd backend && uvicorn api:app --reload --port 8000"
+    } finally {
+        setLoading("meetingBtn", false)
     }
 }
 
@@ -182,21 +186,23 @@ async function runMeeting() {
 async function runResearch() {
     const topic = document.getElementById("topic").value
     const out = document.getElementById("researchOut")
+    setLoading("researchBtn", true)
+
+    if (!topic.trim()) {
+        out.innerText = "⚠ Please enter a research topic first."
+        setLoading("researchBtn", false)
+        return
+    }
 
     out.innerText = "Processing..."
 
     try {
-        let res = await fetch(`${BASE_URL}/research/run`, {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ topic })
-        })
-
-        let data = await res.json()
+        const data = await apiPost("/research", { topic })
         out.innerText = JSON.stringify(data, null, 2)
-
     } catch (e) {
-        out.innerText = "⚠ Backend not reachable"
+        out.innerText = "⚠ Backend not reachable\n\nMake sure the FastAPI server is running on port 8000:\n  cd backend && uvicorn api:app --reload --port 8000"
+    } finally {
+        setLoading("researchBtn", false)
     }
 }
 
@@ -206,21 +212,23 @@ async function runResearch() {
 async function runJournal() {
     const entry = document.getElementById("journal").value
     const out = document.getElementById("journalOut")
+    setLoading("journalBtn", true)
+
+    if (!entry.trim()) {
+        out.innerText = "⚠ Please write a journal entry first."
+        setLoading("journalBtn", false)
+        return
+    }
 
     out.innerText = "Processing..."
 
     try {
-        let res = await fetch(`${BASE_URL}/journal/run`, {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ entry })
-        })
-
-        let data = await res.json()
+        const data = await apiPost("/journal", { entry })
         out.innerText = JSON.stringify(data, null, 2)
-
     } catch (e) {
-        out.innerText = "⚠ Backend not reachable"
+        out.innerText = "⚠ Backend not reachable\n\nMake sure the FastAPI server is running on port 8000:\n  cd backend && uvicorn api:app --reload --port 8000"
+    } finally {
+        setLoading("journalBtn", false)
     }
 }
 
@@ -228,3 +236,4 @@ async function runJournal() {
 
 </body>
 </html>
+

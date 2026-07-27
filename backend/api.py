@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 import re
 import sys
 from datetime import datetime
@@ -41,6 +42,11 @@ class EmailRequest(BaseModel):
 
 class KnowledgeRequest(BaseModel):
     query: str = ""
+
+
+class PipelineRequest(BaseModel):
+    transcript: str = ""
+    use_sample: bool = True
 
 
 def _decode_email_body(payload):
@@ -173,14 +179,15 @@ def knowledge_hub(payload: KnowledgeRequest):
 
 @app.post("/scan-emails")
 def scan_emails(payload: EmailRequest):
-    try:
-        from backend import main as backend_main
-    except ModuleNotFoundError:
-        import sys
-        sys.path.insert(0, str(Path(__file__).resolve().parent))
-        import main as backend_main
-
+    # Handle actions (calendar / notion) first
     if payload.action and payload.email:
+        try:
+            from backend import main as backend_main
+        except ModuleNotFoundError:
+            import sys
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            import main as backend_main
+
         email = payload.email
         start = email.get("start")
         if not start:
@@ -189,39 +196,98 @@ def scan_emails(payload: EmailRequest):
         title = email.get("title") or email.get("subject") or "AgentX Event"
         intent_type = email.get("detected_type") or email.get("type") or "task"
         duration_minutes = int(email.get("duration_minutes") or 60)
-        if payload.action == "calendar":
-            backend_main.create_calendar_event(title, start_time, intent_type, duration_minutes)
-        elif payload.action == "notion":
-            backend_main.add_to_notion(title, start_time)
-        else:
-            raise HTTPException(status_code=400, detail="Unsupported action requested.")
+        try:
+            if payload.action == "calendar":
+                backend_main.create_calendar_event(title, start_time, intent_type, duration_minutes)
+            elif payload.action == "notion":
+                backend_main.add_to_notion(title, start_time)
+            else:
+                raise HTTPException(status_code=400, detail="Unsupported action requested.")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to execute {payload.action} action: {e}")
         return {"status": "ok", "message": f"{payload.action} action completed."}
 
-    creds = backend_main.get_credentials()
-    gmail = backend_main.build("gmail", "v1", credentials=creds)
-    results = gmail.users().messages().list(userId="me", labelIds=["UNREAD"], maxResults=5).execute()
-    messages = results.get("messages", [])
-    detected_emails = []
-    for message in messages:
-        message_data = gmail.users().messages().get(userId="me", id=message["id"], format="full").execute()
-        payload_data = message_data.get("payload", {})
-        headers = payload_data.get("headers", [])
-        text = _decode_email_body(payload_data) or message_data.get("snippet", "")
-        parsed = _parse_email_details(text, backend_main)
-        if not parsed:
-            continue
-        detected_emails.append({
-            "id": message["id"],
-            "subject": _email_header(headers, "Subject") or parsed["title"],
-            "sender": _email_header(headers, "From"),
-            "preview": text[:500],
-            **parsed,
-        })
+    # Scan emails — gracefully handle missing credentials / config
+    try:
+        from backend import main as backend_main
+    except ModuleNotFoundError:
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import main as backend_main
+
+    # Check if credentials exist
+    if not os.path.exists("credentials.json"):
+        return {
+            "scanned_count": 0,
+            "detected_emails": [],
+            "upcoming_events": _load_json_list("events.json"),
+            "error": "Gmail API not configured. Place a 'credentials.json' file from Google Cloud Console in the project root.",
+        }
+
+    try:
+        creds = backend_main.get_credentials()
+        gmail = backend_main.build("gmail", "v1", credentials=creds)
+        results = gmail.users().messages().list(userId="me", labelIds=["UNREAD"], maxResults=5).execute()
+        messages = results.get("messages", [])
+        detected_emails = []
+        for message in messages:
+            message_data = gmail.users().messages().get(userId="me", id=message["id"], format="full").execute()
+            payload_data = message_data.get("payload", {})
+            headers = payload_data.get("headers", [])
+            text = _decode_email_body(payload_data) or message_data.get("snippet", "")
+            parsed = _parse_email_details(text, backend_main)
+            if not parsed:
+                continue
+            detected_emails.append({
+                "id": message["id"],
+                "subject": _email_header(headers, "Subject") or parsed["title"],
+                "sender": _email_header(headers, "From"),
+                "preview": text[:500],
+                **parsed,
+            })
+
+        return {
+            "scanned_count": len(messages),
+            "detected_emails": detected_emails,
+            "upcoming_events": _load_json_list("events.json"),
+        }
+    except Exception as e:
+        return {
+            "scanned_count": 0,
+            "detected_emails": [],
+            "upcoming_events": _load_json_list("events.json"),
+            "error": f"Gmail scan failed: {e}",
+        }
+
+
+@app.post("/pipeline/run")
+def pipeline_run(payload: PipelineRequest):
+    from backend.knowledge_hub import store_meeting
+    from backend.meeting_summarizer import summarize_meeting
+
+    sample_transcript = (
+        "Alice: We need to finish the AgentX meeting summarizer.\n"
+        "Bob: I'll integrate the Notion API.\n"
+        "Charlie: I'll test the system tomorrow.\n"
+        "Alice: Let's present it Friday.\n"
+    )
+
+    transcript = payload.transcript if payload.transcript.strip() else sample_transcript
+
+    summary = summarize_meeting(transcript)
+    store_meeting(summary)
+
+    notion_status = "Notion token not configured"
+    try:
+        from backend.notion_writer import write_summary
+        write_summary(summary)
+        notion_status = "Summary saved to Notion"
+    except Exception as e:
+        notion_status = f"Notion write skipped: {e}"
 
     return {
-        "scanned_count": len(messages),
-        "detected_emails": detected_emails,
-        "upcoming_events": _load_json_list("events.json"),
+        "summary_data": summary,
+        "notion": {"message": notion_status},
     }
 
 
