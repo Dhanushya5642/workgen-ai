@@ -40,6 +40,9 @@ export default function EmailIntelligence({ theme }) {
     try {
       const response = await scanEmails()
       setRawResponse(response)
+      if (response?.error) {
+        setError(response.error)
+      }
       setPayload(normalizeEmailScan(response))
     } catch (err) {
       setError(err.message || 'Unable to scan emails.')
@@ -133,18 +136,22 @@ export default function EmailIntelligence({ theme }) {
                     </p>
 
                     <div className="mt-5 flex flex-wrap gap-3">
-                      {email.auto_added && email.auto_added.length > 0 ? (
-                        email.auto_added.map((action) => (
-                          <span
-                            key={action}
-                            className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300"
-                          >
-                            ✓ {action === 'calendar' ? 'Added to Calendar' : 'Saved to Notion'}
-                          </span>
-                        ))
-                      ) : (
-                        <p className="text-xs text-slate-500 italic">No auto-actions performed</p>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleAction('calendar', email, index)}
+                        disabled={busyAction === `calendar-${index}`}
+                        className="rounded-2xl bg-slate-900/80 px-4 py-2 text-sm font-medium text-white ring-1 ring-white/10 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {busyAction === `calendar-${index}` ? 'Adding…' : 'Add to Calendar'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAction('notion', email, index)}
+                        disabled={busyAction === `notion-${index}`}
+                        className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {busyAction === `notion-${index}` ? 'Saving…' : 'Save to Notion'}
+                      </button>
                     </div>
                   </div>
                 )
