@@ -1,6 +1,6 @@
 export default function ApiResponsePanel({ title = 'Backend Response', data, theme }) {
   const empty = data == null
-  const cardClass = theme === 'dark' ? 'border-white/10 bg-slate-950/70 text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-800'
+  const cardClass = theme === 'dark' ? 'border-white/10 bg-slate-950/70 text-slate-200' : 'border-[#D3CBB8] bg-[#FAF8F5] text-stone-800'
 
   return (
     <section className={`rounded-[28px] border p-5 shadow-xl backdrop-blur-xl md:p-6 ${cardClass}`}>

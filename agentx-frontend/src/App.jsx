@@ -104,13 +104,13 @@ export default function App() {
   return (
     <div
       className={`min-h-screen transition-colors ${
-        dark ? 'bg-slate-950 text-slate-50' : 'bg-slate-100 text-slate-900'
+        dark ? 'bg-slate-950 text-slate-50' : 'light-theme bg-paper-grid text-[#23201C]'
       }`}
     >
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-16 top-10 h-64 w-64 rounded-full bg-cyan-500/12 blur-3xl" />
-        <div className="absolute right-0 top-1/3 h-72 w-72 rounded-full bg-violet-500/12 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-sky-500/10 blur-3xl" />
+        <div className={`absolute -left-16 top-10 h-64 w-64 rounded-full blur-3xl ${dark ? 'bg-cyan-500/12' : 'bg-clay/5'}`} />
+        <div className={`absolute right-0 top-1/3 h-72 w-72 rounded-full blur-3xl ${dark ? 'bg-violet-500/12' : 'bg-forest/5'}`} />
+        <div className={`absolute bottom-0 left-1/3 h-72 w-72 rounded-full blur-3xl ${dark ? 'bg-sky-500/10' : 'bg-clay/5'}`} />
       </div>
 
       <div className="relative flex min-h-screen flex-col md:flex-row">
@@ -119,9 +119,9 @@ export default function App() {
         <main className="flex-1 p-4 md:p-6 lg:p-8">
           <header className="mb-6 flex flex-col gap-4 lg:mb-8 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-400">{activeItem.caption}</p>
+              <p className={`text-sm font-semibold uppercase tracking-[0.28em] ${dark ? 'text-cyan-400' : 'text-forest'}`}>{activeItem.caption}</p>
               <h2 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">{activeItem.label}</h2>
-              <p className={`mt-2 max-w-3xl text-sm leading-7 ${dark ? 'text-slate-300' : 'text-slate-600'}`}>
+              <p className={`mt-2 max-w-3xl text-sm leading-7 ${dark ? 'text-slate-300' : 'text-[#5F5852]'}`}>
                 {activeItem.description}
               </p>
             </div>
@@ -129,7 +129,7 @@ export default function App() {
             <div className="flex flex-wrap items-center gap-3">
               <div
                 className={`rounded-2xl border px-4 py-3 text-sm shadow-lg backdrop-blur-xl ${
-                  dark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white/85'
+                  dark ? 'border-white/10 bg-white/5' : 'border-[#D3CBB8] bg-[#FAF8F5]/85'
                 }`}
               >
                 {/* <div className="text-slate-400">Backend API</div> */}
@@ -142,7 +142,7 @@ export default function App() {
                 className={`rounded-2xl border px-4 py-3 text-sm font-medium shadow-lg backdrop-blur-xl transition ${
                   dark
                     ? 'border-white/10 bg-white/5 hover:bg-white/10'
-                    : 'border-slate-200 bg-white/85 hover:bg-slate-50'
+                    : 'border-[#D3CBB8] bg-[#FAF8F5]/85 hover:bg-[#F3EFE4] text-slate-800'
                 }`}
               >
                 {dark ? '☀️ Light theme' : '🌙 Dark theme'}
