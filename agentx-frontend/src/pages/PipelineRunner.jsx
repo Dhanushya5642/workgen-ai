@@ -46,7 +46,11 @@ export default function PipelineRunner({ theme }) {
             onChange={(event) => setTranscript(event.target.value)}
             rows={10}
             placeholder="Paste a meeting transcript here to run the full pipeline..."
-            className="w-full rounded-3xl border border-white/10 bg-slate-950/60 px-4 py-4 text-sm text-slate-100 outline-none ring-0 placeholder:text-slate-500"
+            className={`w-full rounded-3xl border px-4 py-4 text-sm outline-none transition ${
+              theme === 'dark'
+                ? 'border-white/10 bg-slate-950/60 text-slate-100 placeholder:text-slate-500'
+                : 'border-[#D3CBB8] bg-[#FAF8F5] text-stone-800 placeholder:text-stone-400 focus:border-clay'
+            }`}
           />
 
           {error ? (
@@ -56,7 +60,9 @@ export default function PipelineRunner({ theme }) {
           <button
             type="submit"
             disabled={loading}
-            className="rounded-2xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className={`rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+              theme === 'dark' ? 'bg-cyan-400 text-slate-950 hover:bg-cyan-300' : 'bg-clay text-white hover:bg-clay/90'
+            }`}
           >
             {loading ? 'Running pipeline…' : 'Run Pipeline'}
           </button>
@@ -67,12 +73,12 @@ export default function PipelineRunner({ theme }) {
         <ResultCard title="Pipeline Summary" subtitle="Returned by /pipeline/run" theme={theme}>
           <div className="space-y-4 text-sm text-slate-300">
             <div>
-              <div className="text-xs uppercase tracking-[0.2em] text-cyan-400">Summary</div>
-              <p className="mt-2 leading-7">{result.summary_data.summary || 'No summary returned.'}</p>
+              <div className={`text-xs uppercase tracking-[0.2em] ${theme === 'dark' ? 'text-cyan-400' : 'text-forest font-semibold'}`}>Summary</div>
+              <p className={`mt-2 leading-7 ${theme === 'dark' ? 'text-slate-300' : 'text-stone-700'}`}>{result.summary_data.summary || 'No summary returned.'}</p>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-[0.2em] text-cyan-400">Notion</div>
-              <p className="mt-2 leading-7">{result.notion?.message || 'No Notion status returned.'}</p>
+              <div className={`text-xs uppercase tracking-[0.2em] ${theme === 'dark' ? 'text-cyan-400' : 'text-forest font-semibold'}`}>Notion</div>
+              <p className={`mt-2 leading-7 ${theme === 'dark' ? 'text-slate-300' : 'text-stone-700'}`}>{result.notion?.message || 'No Notion status returned.'}</p>
             </div>
           </div>
         </ResultCard>

@@ -1,0 +1,21 @@
+[12:08:03] [live_transcript] [INFO] faster-whisper is available
+Testing TranscriptionEngine initialization ...
+Backend before init: none
+Calling ensure_initialized() ...
+[12:08:03] [live_transcript] [INFO] Initializing Faster-Whisper (tiny) …
+[12:08:03] [live_transcript] [INFO] model.bin at C:\Users\kanak\OneDrive\Desktop\Hackathon\agentX\backend\models\whisper\tiny\model.bin is healthy (72.0 MB)
+[12:08:03] [live_transcript] [INFO] Using existing local model at C:\Users\kanak\OneDrive\Desktop\Hackathon\agentX\backend\models\whisper\tiny
+[12:08:03] [live_transcript] [INFO] Loading WhisperModel from C:\Users\kanak\OneDrive\Desktop\Hackathon\agentX\backend\models\whisper\tiny …
+[12:08:04] [live_transcript] [INFO] Faster-Whisper model loaded successfully
+Success: True
+Backend after init: faster-whisper
+Model dir: C:\Users\kanak\OneDrive\Desktop\Hackathon\agentX\backend\models\whisper\tiny
+Init error: None
+Engine ready!
+Testing transcribe_audio_file API contract...
+[12:08:04] [live_transcript] [DEBUG] tempfile fallback conversion failed: Error opening 'C:\\Users\\kanak\\AppData\\Local\\Temp\\tmpgklk7pqe.wav': Format not recognised.
+[12:08:04] [live_transcript] [ERROR] Audio conversion failed: All audio conversion methods failed. Last error: Error opening 'C:\\Users\\kanak\\AppData\\Local\\Temp\\tmpgklk7pqe.wav': Format not recognised.
+API result keys: ['transcript', 'segments', 'error']
+API result: {'transcript': '', 'segments': [], 'error': "Audio conversion failed: All audio conversion methods failed. Last error: Error opening 'C:\\\\Users\\\\kanak\\\\AppData\\\\Local\\\\Temp\\\\tmpgklk7pqe.wav': Format not recognised."}
+
+All tests passed!

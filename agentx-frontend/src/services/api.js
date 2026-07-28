@@ -100,6 +100,32 @@ export async function sendAudioForTranscription(audioBlob) {
   return data;
 }
 
+/** Send a small audio chunk for real-time streaming transcription */
+export async function sendAudioChunk(audioBlob, chunkIndex) {
+  const formData = new FormData();
+  formData.append("file", audioBlob, `chunk_${chunkIndex}.webm`);
+
+  const response = await fetch(`${API_BASE_URL}/transcribe`, {
+    method: "POST",
+    body: formData,
+  });
+
+  const text = await response.text();
+  const data = text ? tryParseJson(text) : null;
+
+  if (!response.ok) {
+    const message =
+      data?.message ||
+      data?.error ||
+      data?.detail ||
+      text ||
+      `Request failed: ${response.status}`;
+    throw new Error(message);
+  }
+
+  return data;
+}
+
 export function searchKnowledgeHub(query) {
   return request("/knowledge-hub", {
     method: "POST",

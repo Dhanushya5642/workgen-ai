@@ -1,8 +1,10 @@
 import base64
 import json
+import logging
 import os
 import re
 import sys
+from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 
@@ -12,8 +14,34 @@ from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+logger = logging.getLogger("api")
 
-app = FastAPI(title="AgentX API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Eagerly initialize the transcription model on application startup."""
+    logger.info("Starting AgentX API — initializing transcription engine …")
+    try:
+        from backend.live_transcript import get_engine
+
+        engine = get_engine()
+        success = engine.ensure_initialized()
+        if success:
+            logger.info(
+                "Transcription engine ready (backend: %s)", engine.backend
+            )
+        else:
+            logger.error(
+                "Transcription engine failed to initialize: %s",
+                engine._init_error or "unknown error",
+            )
+    except Exception as exc:
+        logger.error("Transcription engine init raised: %s", exc)
+    yield
+    logger.info("Shutting down AgentX API.")
+
+
+app = FastAPI(title="AgentX API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -151,7 +179,12 @@ async def transcribe(file: UploadFile = File(...)):
     from backend.live_transcript import transcribe_audio_file
 
     audio_bytes = await file.read()
+    print(f"[transcribe] Received {len(audio_bytes)} bytes, filename={file.filename}, content_type={file.content_type}")
     result = transcribe_audio_file(audio_bytes)
+    if result.get("error"):
+        print(f"[transcribe] Error: {result['error']}")
+    else:
+        print(f"[transcribe] Transcript ({len(result.get('segments', []))} segments): {result.get('transcript', '')[:100]}")
     return result
 
 

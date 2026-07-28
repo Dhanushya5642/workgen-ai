@@ -46,7 +46,9 @@ export default function JournalAI({ theme }) {
             type="button"
             onClick={submit}
             disabled={loading}
-            className="rounded-2xl bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className={`rounded-2xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+              theme === 'dark' ? 'bg-cyan-400 text-slate-950 hover:bg-cyan-300' : 'bg-clay text-white hover:bg-clay/90'
+            }`}
           >
             {loading ? 'Analyzing…' : 'Analyze Emotion'}
           </button>
@@ -59,7 +61,7 @@ export default function JournalAI({ theme }) {
           className={`min-h-[220px] w-full rounded-[28px] border px-5 py-4 text-sm outline-none transition ${
             theme === 'dark'
               ? 'border-white/10 bg-slate-950/70 text-slate-50 placeholder:text-slate-500 focus:border-cyan-400/40'
-              : 'border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-cyan-400'
+              : 'border-[#D3CBB8] bg-[#FAF8F5] text-stone-800 placeholder:text-stone-400 focus:border-clay'
           }`}
         />
         {error ? <div className="mt-4 rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{error}</div> : null}
@@ -69,11 +71,11 @@ export default function JournalAI({ theme }) {
         {metrics.map((metric) => (
           <div
             key={metric.label}
-            className={`rounded-[28px] border p-5 shadow-xl ${
-              theme === 'dark' ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white/85'
+            className={`rounded-[28px] border p-5 shadow-xl transition ${
+              theme === 'dark' ? 'border-white/10 bg-white/5' : 'border-[#D3CBB8] bg-[#FAF8F5] text-stone-850'
             }`}
           >
-            <p className="text-sm text-slate-400">{metric.label}</p>
+            <p className={`text-sm ${theme === 'dark' ? 'text-slate-400' : 'text-stone-500'}`}>{metric.label}</p>
             <p className="mt-3 text-lg font-semibold leading-7">{metric.value}</p>
           </div>
         ))}
