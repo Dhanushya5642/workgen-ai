@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 logger = logging.getLogger("api")
@@ -49,6 +50,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register Organization Knowledge Module routes
+from modules.organization_knowledge.routes import router as org_knowledge_router
+app.include_router(org_knowledge_router)
 
 
 class TranscriptRequest(BaseModel):

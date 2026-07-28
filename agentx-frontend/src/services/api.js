@@ -133,6 +133,59 @@ export function searchKnowledgeHub(query) {
   });
 }
 
+// ------------------------------------------------------------------
+// Organization Knowledge Module API
+// ------------------------------------------------------------------
+
+/** Upload an organization document (PDF, DOCX, TXT). Replaces previous knowledge base. */
+export async function uploadOrganizationDocument(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_BASE_URL}/org-knowledge/upload`, {
+    method: "POST",
+    body: formData,
+  });
+
+  const text = await response.text();
+  const data = text ? tryParseJson(text) : null;
+
+  if (!response.ok) {
+    const message =
+      data?.message ||
+      data?.error ||
+      data?.detail ||
+      text ||
+      `Upload failed: ${response.status}`;
+    throw new Error(message);
+  }
+
+  return data;
+}
+
+/** Ask a question about the uploaded organization documents. */
+export function askOrganizationQuestion(question) {
+  return request("/org-knowledge/ask", {
+    method: "POST",
+    body: { question },
+  });
+}
+
+/** Get the status of the organization knowledge base. */
+export function getOrganizationKnowledgeStatus() {
+  return request("/org-knowledge/status", {
+    method: "GET",
+  });
+}
+
+/** Clear the organization knowledge base. */
+export function clearOrganizationKnowledge() {
+  return request("/org-knowledge/clear", {
+    method: "POST",
+    body: {},
+  });
+}
+
 export function runMeetingPipeline(transcript, useSample) {
   return request("/pipeline/run", {
     method: "POST",
