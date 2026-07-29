@@ -68,6 +68,15 @@ class JournalRequest(BaseModel):
     entry: str
 
 
+class TaskCreateRequest(BaseModel):
+    title: str
+
+
+class TaskUpdateRequest(BaseModel):
+    title: str | None = None
+    done: bool | None = None
+
+
 class EmailRequest(BaseModel):
     action: str | None = None
     email: dict | None = None
@@ -159,22 +168,114 @@ def research(payload: TopicRequest):
     return generate_research_package(payload.topic)
 
 
-@app.post("/journal")
-def journal(payload: JournalRequest):
-    from backend.journal_ai import adjust_tasks, analyze_emotion, log_mood, reminder_strategy
+# ------------------------------------------------------------------
+# Task Management (Journal AI → Todo List)
+# ------------------------------------------------------------------
 
-    emotion_data = analyze_emotion(payload.entry)
-    log_mood(emotion_data)
-    tasks = [
-        {"task": "Finish research paper", "priority": 1, "difficulty": 9},
-        {"task": "Reply to emails", "priority": 3, "difficulty": 2},
-        {"task": "Prepare presentation slides", "priority": 2, "difficulty": 6},
-        {"task": "Read research articles", "priority": 4, "difficulty": 3},
-    ]
+@app.get("/tasks")
+def get_all_tasks():
+    """Return all tasks + aggregate stats."""
+    from backend.journal_ai import get_task_stats, get_tasks
+
     return {
-        **emotion_data,
-        "optimized_tasks": adjust_tasks(tasks, emotion_data["stress_level"]),
-        "reminder_strategy": reminder_strategy(emotion_data["stress_level"]),
+        "tasks": get_tasks(),
+        "stats": get_task_stats(),
+    }
+
+
+@app.post("/tasks")
+def add_task(payload: TaskCreateRequest):
+    """Create a new task."""
+    from backend.journal_ai import create_task
+
+    return create_task(payload.title)
+
+
+@app.put("/tasks/{task_id}")
+def edit_task(task_id: str, payload: TaskUpdateRequest):
+    """Update a task (title and/or done status)."""
+    from backend.journal_ai import update_task
+
+    update_data = {}
+    if payload.title is not None:
+        update_data["title"] = payload.title
+    if payload.done is not None:
+        update_data["done"] = payload.done
+
+    result = update_task(task_id, update_data)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return result
+
+
+@app.delete("/tasks/{task_id}")
+def remove_task(task_id: str):
+    """Delete a task."""
+    from backend.journal_ai import delete_task
+
+    if not delete_task(task_id):
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {"status": "deleted", "id": task_id}
+
+
+@app.get("/tasks/stats")
+def task_stats():
+    """Return only the aggregate statistics."""
+    from backend.journal_ai import get_task_stats
+
+    return get_task_stats()
+
+
+# ------------------------------------------------------------------
+# Action Agent — unites pending tasks + unread emails
+# ------------------------------------------------------------------
+
+@app.get("/action-agent")
+def action_agent():
+    """Return pending tasks + unread email count + stats for the Action Agent dashboard."""
+    from backend.journal_ai import get_task_stats, get_tasks
+
+    tasks = get_tasks()
+    stats = get_task_stats()
+
+    # Try to scan unread emails (gracefully handle missing config)
+    unread_count = 0
+    unread_emails = []
+    email_error = None
+
+    try:
+        from backend import main as backend_main
+
+        if os.path.exists("credentials.json"):
+            creds = backend_main.get_credentials()
+            gmail = backend_main.build("gmail", "v1", credentials=creds)
+            results = gmail.users().messages().list(
+                userId="me", labelIds=["UNREAD"], maxResults=10
+            ).execute()
+            messages = results.get("messages", [])
+            unread_count = len(messages)
+            for msg in messages:
+                msg_data = gmail.users().messages().get(
+                    userId="me", id=msg["id"], format="full"
+                ).execute()
+                payload_data = msg_data.get("payload", {})
+                headers = payload_data.get("headers", [])
+                text = _decode_email_body(payload_data) or msg_data.get("snippet", "")
+                unread_emails.append({
+                    "id": msg["id"],
+                    "subject": _email_header(headers, "Subject") or "No subject",
+                    "sender": _email_header(headers, "From") or "Unknown",
+                    "preview": text[:300],
+                })
+    except Exception as e:
+        email_error = str(e)
+
+    return {
+        "tasks": [t for t in tasks if not t["done"]],
+        "task_stats": stats,
+        "unread_count": unread_count,
+        "unread_emails": unread_emails,
+        "email_error": email_error,
     }
 
 

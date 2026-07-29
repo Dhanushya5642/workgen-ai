@@ -186,6 +186,52 @@ export function clearOrganizationKnowledge() {
   });
 }
 
+// ------------------------------------------------------------------
+// Action Agent — unified pending tasks + unread emails
+// ------------------------------------------------------------------
+
+export function getActionAgentDashboard() {
+  return request("/action-agent", {
+    method: "GET",
+  });
+}
+
+// ------------------------------------------------------------------
+// Task Management (Journal AI → Todo List)
+// ------------------------------------------------------------------
+
+export function getTasks() {
+  return request("/tasks", {
+    method: "GET",
+  });
+}
+
+export function getTaskStats() {
+  return request("/tasks/stats", {
+    method: "GET",
+  });
+}
+
+export function createTask(title) {
+  return request("/tasks", {
+    method: "POST",
+    body: { title },
+  });
+}
+
+export function updateTask(taskId, data) {
+  return request(`/tasks/${taskId}`, {
+    method: "PUT",
+    body: data,
+  });
+}
+
+export function deleteTask(taskId) {
+  return request(`/tasks/${taskId}`, {
+    method: "DELETE",
+  });
+}
+
 export function runMeetingPipeline(transcript, useSample) {
   return request("/pipeline/run", {
     method: "POST",
