@@ -89,10 +89,11 @@ const NAV_ITEMS = [
   {
     id: "journal",
     path: "/journal",
-    label: "Journal AI",
-    caption: "Emotion signals",
-    icon: "📓",
-    description: "Analyze mood, stress, and focus from reflective writing.",
+    label: "Action Agent",
+    caption: "Todo + emails",
+    icon: "🎯",
+    description:
+      "Manage pending tasks and monitor unread emails in one unified action dashboard.",
     accent: "from-amber-500/30 via-orange-500/15 to-rose-500/10",
   },
 ];
