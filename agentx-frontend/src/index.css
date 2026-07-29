@@ -1,0 +1,226 @@
+@import "tailwindcss";
+
+@theme {
+  --color-clay: #b65c38;
+  --color-forest: #2f5d50;
+  --color-paper: #f3efe4;
+
+  --font-fraunces: "Fraunces", Georgia, serif;
+  --font-grotesk: "Space Grotesk", sans-serif;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.light-theme {
+  font-family:
+    var(--font-grotesk), ui-sans-serif, system-ui, sans-serif !important;
+}
+
+.light-theme h1,
+.light-theme h2,
+.light-theme h3,
+.light-theme h4,
+.light-theme .font-display {
+  font-family: var(--font-fraunces), Georgia, serif !important;
+}
+
+.bg-paper-grid {
+  background-color: #f3efe4;
+  background-image:
+    linear-gradient(to right, rgba(47, 93, 80, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(47, 93, 80, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  background: rgba(56, 189, 248, 0.25);
+}
+
+.vaz-stage {
+  position: relative;
+}
+
+.vaz-stage::before {
+  content: "";
+  position: absolute;
+  inset: 8% 18%;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    rgba(56, 189, 248, 0.16),
+    transparent 72%
+  );
+  filter: blur(30px);
+  pointer-events: none;
+}
+
+.vaz-shell {
+  position: relative;
+}
+
+.vaz-shell::after {
+  content: "";
+  position: absolute;
+  inset: 1rem;
+  border-radius: 32px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08),
+    transparent 35%,
+    rgba(255, 255, 255, 0.03)
+  );
+  pointer-events: none;
+}
+
+.vaz-orb-wrap {
+  width: min(72vw, 24rem);
+  aspect-ratio: 1;
+  transform-style: preserve-3d;
+  animation: vaz-float 7s ease-in-out infinite;
+}
+
+.vaz-orb-halo,
+.vaz-orb-core,
+.vaz-orb-ring,
+.vaz-orb-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.vaz-orb-halo {
+  background: radial-gradient(
+    circle,
+    rgba(96, 212, 255, 0.42) 0%,
+    rgba(59, 130, 246, 0.2) 28%,
+    transparent 72%
+  );
+  filter: blur(12px);
+  animation: vaz-pulse 4.8s ease-in-out infinite;
+}
+
+.vaz-orb-core {
+  inset: 12%;
+  background:
+    radial-gradient(
+      circle at 35% 30%,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(170, 241, 255, 0.78) 11%,
+      rgba(56, 189, 248, 0.34) 35%,
+      rgba(6, 182, 212, 0.18) 58%,
+      rgba(15, 23, 42, 0.9) 100%
+    ),
+    linear-gradient(
+      160deg,
+      rgba(34, 211, 238, 0.85),
+      rgba(59, 130, 246, 0.7),
+      rgba(99, 102, 241, 0.8)
+    );
+  box-shadow:
+    0 0 30px rgba(56, 189, 248, 0.5),
+    0 0 90px rgba(59, 130, 246, 0.3),
+    inset 0 0 30px rgba(255, 255, 255, 0.18);
+}
+
+.vaz-orb-ring {
+  inset: 4%;
+  border: 1px solid rgba(103, 232, 249, 0.32);
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.08);
+  animation: vaz-spin 14s linear infinite;
+}
+
+.vaz-orb-ring::before,
+.vaz-orb-ring::after {
+  content: "";
+  position: absolute;
+  inset: 16%;
+  border-radius: 50%;
+  border: 1px solid rgba(191, 219, 254, 0.16);
+}
+
+.vaz-orb-ring::after {
+  inset: 30%;
+  border-style: dashed;
+  opacity: 0.9;
+}
+
+.vaz-orb-sheen {
+  inset: 16%;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.5),
+    rgba(255, 255, 255, 0.02) 32%,
+    transparent 60%
+  );
+  mix-blend-mode: screen;
+  opacity: 0.55;
+}
+
+@keyframes vaz-float {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-14px) scale(1.015);
+  }
+}
+
+@keyframes vaz-pulse {
+  0%,
+  100% {
+    transform: scale(0.98);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+@keyframes vaz-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}

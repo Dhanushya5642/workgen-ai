@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gemini Live Agent Demo</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div>
+          <p class="eyebrow">AgentX Hackathon Demo</p>
+          <h1>Gemini Live Agent</h1>
+          <p class="muted">Standalone multimodal website for text, image, and voice interactions.</p>
+        </div>
+        <div class="status-card">
+          <div>
+            <span class="label">Service</span>
+            <strong id="health-status">Checking…</strong>
+          </div>
+          <div>
+            <span class="label">Session</span>
+            <code id="session-id">new session</code>
+          </div>
+          <button id="new-session-btn" class="secondary">Start Fresh Session</button>
+        </div>
+        <div class="tips">
+          <h2>Demo ideas</h2>
+          <ul>
+            <li>Ask it to summarize a workflow in chat.</li>
+            <li>Upload a screenshot for UI reasoning.</li>
+            <li>Record a short voice prompt and interrupt it with “stop”.</li>
+          </ul>
+        </div>
+      </aside>
+
+      <main class="content">
+        <section class="hero">
+          <div>
+            <p class="eyebrow">Multimodal Website</p>
+            <h2>Interact with Gemini using text, audio, or images</h2>
+            <p class="muted">Responses appear as text, visuals, and optional generated audio.</p>
+          </div>
+          <div class="hero-actions">
+            <a href="/docs" target="_blank" rel="noreferrer" class="secondary">Open API Docs</a>
+          </div>
+        </section>
+
+        <section class="grid">
+          <article class="panel">
+            <div class="panel-header">
+              <h3>Text Chat</h3>
+              <span>POST /chat</span>
+            </div>
+            <textarea id="chat-text" rows="5" placeholder="Ask Gemini to explain, plan, summarize, or coach..."></textarea>
+            <label class="checkbox-row">
+              <input type="checkbox" id="chat-audio" checked />
+              Include audio in response
+            </label>
+            <button id="send-chat-btn">Send Chat</button>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <h3>Image Reasoning</h3>
+              <span>POST /image</span>
+            </div>
+            <input id="image-file" type="file" accept="image/*" />
+            <textarea id="image-prompt" rows="4" placeholder="What should Gemini focus on in this image?"></textarea>
+            <button id="send-image-btn">Analyze Image</button>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <h3>Voice Interaction</h3>
+              <span>POST /audio</span>
+            </div>
+            <input id="audio-file" type="file" accept="audio/*" />
+            <textarea id="audio-prompt" rows="3" placeholder="Optional voice prompt context"></textarea>
+            <div class="audio-actions">
+              <button id="record-btn" class="secondary">Start Recording</button>
+              <button id="interrupt-btn" class="danger">Send Interruption</button>
+            </div>
+            <p id="recording-status" class="muted small">You can upload an audio file or record directly in supported browsers.</p>
+            <button id="send-audio-btn">Send Audio</button>
+          </article>
+        </section>
+
+        <section class="results-grid">
+          <article class="panel response-panel">
+            <div class="panel-header">
+              <h3>Agent Response</h3>
+              <span id="response-source">Idle</span>
+            </div>
+            <div id="error-box" class="error hidden"></div>
+            <div id="text-response" class="response-text">No response yet.</div>
+            <audio id="audio-player" class="hidden" controls></audio>
+          </article>
+
+          <article class="panel visuals-panel">
+            <div class="panel-header">
+              <h3>Visual Cards</h3>
+              <span>Structured outputs</span>
+            </div>
+            <div id="visuals-grid" class="visuals-grid empty">Visual summaries will appear here.</div>
+          </article>
+        </section>
+
+        <section class="panel raw-panel">
+          <div class="panel-header">
+            <h3>Raw JSON</h3>
+            <span>Debug-friendly output</span>
+          </div>
+          <pre id="raw-json">{}</pre>
+        </section>
+      </main>
+    </div>
+
+    <script src="/assets/app.js"></script>
+  </body>
+</html>

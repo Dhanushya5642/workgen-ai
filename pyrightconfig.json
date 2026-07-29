@@ -1,0 +1,15 @@
+{
+  "include": ["backend"],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.*",
+    "agentx-frontend/node_modules"
+  ],
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": ["backend"]
+    }
+  ]
+}
