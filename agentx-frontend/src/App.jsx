@@ -27,6 +27,16 @@ const NAV_ITEMS = [
     accent: "from-slate-500/20 to-slate-900/10",
   },
   {
+    id: "organization",
+    path: "/organization",
+    label: "Organizational Knowledge",
+    caption: "Official docs & SOPs",
+    icon: "🗂️",
+    description:
+      "Upload organization policies, handbooks & SOPs. Answers user questions strictly based on uploaded documents.",
+    accent: "from-emerald-500/30 via-cyan-500/15 to-teal-500/10",
+  },
+  {
     id: "email",
     path: "/email",
     label: "Email Intelligence",
@@ -35,6 +45,16 @@ const NAV_ITEMS = [
     description:
       "Scan inboxes, classify intent, and push detected opportunities into action.",
     accent: "from-cyan-500/30 via-sky-500/15 to-blue-500/10",
+  },
+  {
+    id: "pipeline",
+    path: "/pipeline",
+    label: "Meeting Pipeline",
+    caption: "Live transcript",
+    icon: "🎙️",
+    description:
+      "Surface real-time speech-to-text output in a stage-friendly panel.",
+    accent: "from-indigo-500/30 via-sky-500/15 to-cyan-500/10",
   },
   {
     id: "meeting",
@@ -47,13 +67,13 @@ const NAV_ITEMS = [
     accent: "from-violet-500/30 via-fuchsia-500/15 to-sky-500/10",
   },
   {
-    id: "organization",
-    path: "/organization",
-    label: "Organizational Knowledge",
-    caption: "Official docs & SOPs",
-    icon: "🗂️",
+    id: "research",
+    path: "/research",
+    label: "Research Copilot",
+    caption: "LLM research packs",
+    icon: "🔬",
     description:
-      "Upload organization policies, handbooks & SOPs. Answers user questions strictly based on uploaded documents.",
+      "Generate overviews, questions, outlines, and citations for any topic.",
     accent: "from-emerald-500/30 via-cyan-500/15 to-teal-500/10",
   },
   {
@@ -67,16 +87,6 @@ const NAV_ITEMS = [
     accent: "from-sky-500/30 via-cyan-500/15 to-indigo-500/10",
   },
   {
-    id: "research",
-    path: "/research",
-    label: "Research Copilot",
-    caption: "LLM research packs",
-    icon: "🔬",
-    description:
-      "Generate overviews, questions, outlines, and citations for any topic.",
-    accent: "from-emerald-500/30 via-cyan-500/15 to-teal-500/10",
-  },
-  {
     id: "journal",
     path: "/journal",
     label: "Journal AI",
@@ -84,16 +94,6 @@ const NAV_ITEMS = [
     icon: "📓",
     description: "Analyze mood, stress, and focus from reflective writing.",
     accent: "from-amber-500/30 via-orange-500/15 to-rose-500/10",
-  },
-  {
-    id: "pipeline",
-    path: "/pipeline",
-    label: "Meeting Pipeline",
-    caption: "Live transcript",
-    icon: "🎙️",
-    description:
-      "Surface real-time speech-to-text output in a stage-friendly panel.",
-    accent: "from-indigo-500/30 via-sky-500/15 to-cyan-500/10",
   },
 ];
 
