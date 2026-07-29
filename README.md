@@ -1,112 +1,160 @@
 # AgentX
+## The AI Operating System for Modern Professionals
 
-**Your inbox never sleeps. Now, neither does your chief of staff.**
+> **Capture. Understand. Organize. Act.**
 
-AgentX is a multi-agent AI system built for **Agentverse Hackathon 2026** by **Team Scadoo**. It automates the busywork of a working professional's day — reading emails, scheduling meetings, transcribing calls, summarizing decisions, tracking deadlines, and organizing everything into one place — so you spend less time managing your inbox and more time doing the actual work.
-
----
-
-## The Problem
-
-Working professionals lose hours every week to manual, repetitive coordination — scanning emails for deadlines, updating calendars by hand, writing meeting notes, chasing follow-ups, and searching old threads for context that's already been discussed once before. AgentX turns that manual loop into an automated one.
+AgentX is a multi-agent AI Operating System built for **AgentVerse Hackathon 2026** by **Team Scadoo**. Instead of relying on a single AI assistant, AgentX orchestrates specialized AI agents through a centralized **Knowledge Hub** to automate professional workflows.
 
 ---
 
-## The Agent Stack
+# The Problem
 
-| # | Agent | What it does |
-|---|-------|---------------|
-| 01 | **Email Agent** *(core)* | Scans incoming mail for deadlines and action items, adds them to Notion & Google Calendar, and sends timely reminders (e.g. a 10 AM meeting triggers a 9 AM nudge) via WhatsApp/email. |
-| 02 | **Live Transcription** | Converts meeting audio into real-time text as the conversation happens. |
-| 03 | **Meeting Intelligence** | Summarizes meeting transcripts into clear, actionable notes. |
-| 04 | **Research Copilot** | Given a topic, generates a finalized, report-ready writeup. |
-| 05 | **Journal AI** | A personal reflection space — tracks emotional check-ins over time and surfaces patterns back to the user. |
-| 06 | **Knowledge Hub** | Stores meeting summaries and other agent outputs, with traceability back to their original source. |
-| 07 | **Rules Agent** | Answers questions about college/organizational rules and regulations from uploaded documents. |
-
-**Flow:** `Capture → Understand → Organize → Act`
-The Email Agent is the entry point; every other agent either feeds it context or consumes what it produces, with Notion acting as the shared "brain" across the system.
+Modern professionals constantly switch between emails, meetings, research, calendars, notes, and messaging platforms. AgentX transforms this fragmented workflow into one intelligent pipeline that captures information, understands context, stores organizational knowledge, generates insights, and executes actions automatically.
 
 ---
 
-## Tech Stack
+# System Workflow
 
-- **Backend:** Django, Django REST Framework, FastAPI
-- **Frontend:** `agentx-frontend` (see folder for framework details)
-- **AI / LLM:** OpenAI API
-- **Integrations:** Notion API, Google API (Calendar), WhatsApp
-- **Audio processing:** librosa, soundfile, pydub, sounddevice (for live transcription)
-- **Database:** MongoDB (via `djongo` / `pymongo` / `mongoengine`), Redis
-- **Task queue:** Celery
-- **Other:** python-dotenv, python-docx, reportlab (for document/report generation)
+```text
+Capture
+├── Email Intelligence
+└── Meeting Pipeline
 
----
+        ↓
 
-## Project Structure
+Understand
+├── Meeting Intelligence
+└── Research Copilot
 
-```
-workgen-ai/
-├── agentx-frontend/     # Frontend application
-├── backend/             # Backend services & APIs
-├── core/                # Core agent logic
-├── modules/             # Individual agent modules
-├── requirements.txt     # Python dependencies
-└── meeting.wav          # Sample audio for transcription testing
+        ↓
+
+Insight
+└── Insight Agent
+
+        ↓
+
+Organize
+├── Knowledge Hub
+└── Organizational Knowledge
+
+        ↓
+
+Act
+└── Action Agent
+
+        ↓
+
+Notify
+Calendar • Notion • WhatsApp • Email
 ```
 
 ---
 
-## Getting Started
+# AI Agents
 
-### Prerequisites
-- Python 3.10+
-- Node.js (for `agentx-frontend`)
-- MongoDB instance
-- Redis instance
-- API keys: OpenAI, Notion, Google Calendar, WhatsApp (Business API)
+| Agent | Purpose |
+|--------|---------|
+| Email Intelligence | Extracts deadlines, reminders, meeting invitations and action items from emails. |
+| Meeting Pipeline | Converts live meeting audio into searchable transcripts. |
+| Meeting Intelligence | Produces summaries, decisions, action items, owners and deadlines. |
+| Research Copilot | Searches trusted sources and generates structured research reports with citations. |
+| Insight Agent | Combines outputs from every agent to generate recommendations and patterns. |
+| Knowledge Hub | Central memory layer storing meetings, research, insights and organizational knowledge. |
+| Action Agent | Creates tasks, reminders, follow-up emails and notifications automatically. |
 
-### Installation
+---
+
+# Key Features
+
+- Multi-Agent AI Architecture
+- Intelligent Email Processing
+- Live Meeting Transcription
+- AI Meeting Intelligence
+- Research Automation
+- Shared Knowledge Hub
+- Organizational Knowledge Retrieval
+- AI-Driven Insights
+- Automatic Task Generation
+- Calendar, Notion, Email & WhatsApp Integration
+
+---
+
+# Tech Stack
+
+## Frontend
+- React
+- Tailwind CSS
+
+## Backend
+- Django
+- Django REST Framework
+- FastAPI
+
+## AI
+- OpenAI API
+- Whisper
+- LangChain
+
+## Database
+- MongoDB
+- Redis
+
+## Integrations
+- Gmail API
+- Google Calendar API
+- Notion API
+- WhatsApp API
+
+---
+
+# Getting Started
 
 ```bash
-# Clone the repo
 git clone https://github.com/dhivya-1010/workgen-ai.git
 cd workgen-ai
 
-# Set up Python environment
 python -m venv venv
-source venv/bin/activate   # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
 
-# Set up frontend
-cd agentx-frontend
-npm install
+# Windows
+venv\Scripts\activate
+
+pip install -r requirements.txt
 ```
 
-### Running the app
+Run backend:
 
 ```bash
-# Backend
 cd backend
 python manage.py runserver
+```
 
-# Frontend (separate terminal)
+Run frontend:
+
+```bash
 cd agentx-frontend
+npm install
 npm run dev
 ```
 
 ---
 
-## Team
+# Why AgentX?
 
-Built by **Team Scadoo** — III CSE A, Sri Eshwar College of Engineering
+Most AI assistants answer questions.
 
-- **Dhivya V**
-- **Dhanushya T**
+**AgentX performs work.**
 
----
-
-## Hackathon
-
-Built for **Agentverse Hackathon 2026**.
+By orchestrating specialized AI agents through a shared memory system, AgentX captures, understands, organizes, and acts on professional workflows instead of simply responding to prompts.
 
 ---
+
+# Team
+
+**Team Scadoo**
+
+Sri Eshwar College of Engineering
+
+- Dhivya V
+- Dhanushya T
+
+Built for **AgentVerse Hackathon 2026**.
